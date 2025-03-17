@@ -12,7 +12,7 @@ PG_DIST_EXT="${WORKSPACE}/postgresql/dist/extensions-emsdk"
 PG_DIST_PGLITE="${WORKSPACE}/postgresql/dist/pglite-sandbox"
 
 # for local testing
-if [ -d export PG_DIST_WEB="/srv/www/html/pglite-web" ]
+if [ -d "/srv/www/html/pglite-web" ]
 then
     export PG_DIST_WEB="/srv/www/html/pglite-web"
     export LOCAL=true
