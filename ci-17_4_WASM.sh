@@ -66,24 +66,24 @@ END
 
         if [ -d ${WORKSPACE}/pglite/packages/pglite ]
         then
-            pushd ${WORKSPACE}/pglite
-                # clean
-                [ -d packages/pglite/release ] && rm packages/pglite/release/* packages/pglite/dist/* packages/pglite/dist/*/*
-
-                # be safe
-                mkdir -p packages/pglite/release packages/pglite/dist
-
-                rmdir packages/pglite/dist/*
-
-                #update
-                mv -vf ${WORKSPACE}/postgresql-${PG_BRANCH}/pglite.* packages/pglite/release/
-                mv -vf ${PG_DIST_EXT}/*.tar.gz packages/pglite/release/
-            popd
+            echo "using local pglite tree for release"
         else
             git clone --no-tags --depth 1 --single-branch --branch pmp-p/pglite-build17 https://github.com/electric-sql/pglite pglite
         fi
+        
+        pushd ${WORKSPACE}/pglite
+            # clean
+            [ -d packages/pglite/release ] && rm packages/pglite/release/* packages/pglite/dist/* packages/pglite/dist/*/*
 
-        read
+            # be safe
+            mkdir -p packages/pglite/release packages/pglite/dist
+
+            rmdir packages/pglite/dist/*
+
+            #update
+            mv -vf ${WORKSPACE}/postgresql-${PG_BRANCH}/pglite.* packages/pglite/release/
+            mv -vf ${PG_DIST_EXT}/*.tar.gz packages/pglite/release/
+        popd
 
         # when outside CI use emsdk node
         if [ -d /srv/www/html/pglite-web ]
