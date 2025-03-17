@@ -32,7 +32,7 @@ export HOME=/tmp
 export PROOT=${PORTABLE}/proot
 
 # git remove empty dirs
-mkdir -p ${WORKDIR}/sdk/dist
+mkdir -p ${WORKDIR}/dist
 
 # --------------------------------------------------------
 # "docker emulation"
