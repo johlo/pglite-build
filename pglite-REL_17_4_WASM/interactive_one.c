@@ -1,9 +1,23 @@
-#ifdef PDEBUG
-#undef PDEBUG
+#include <unistd.h>  // access, unlink
+
+#if !defined(__wasi__)
+volatile sigjmp_buf local_sigjmp_buf;
+#else
+volatile sigjmp_buf void*;
 #endif
 
-#define PDEBUG(string) puts(string)
-#include <unistd.h>  // access, unlink
+/* TODO : prevent multiple write and write while reading ? */
+volatile int cma_wsize = 0;
+volatile int cma_rsize = 0;  // defined in postgres.c
+
+
+__attribute__((export_name("interactive_read")))
+int
+interactive_read() {
+    /* should cma_rsize should be reset here ? */
+    return cma_wsize;
+}
+
 
 static void pg_prompt() {
     fprintf(stdout,"pg> %c\n", 4);
@@ -631,4 +645,5 @@ wire_flush:
 
     #undef IO
 }
+
 

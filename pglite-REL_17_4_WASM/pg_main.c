@@ -112,29 +112,9 @@ static bool force_echo = false;
 #include "pgl_initdb.c"
 
 
-// interactive_one
+// interactive_one, heart of the async loop.
 
-
-/* TODO : prevent multiple write and write while reading ? */
-volatile int cma_wsize = 0;
-volatile int cma_rsize = 0;  // defined in postgres.c
-
-
-
-__attribute__((export_name("interactive_read")))
-int
-interactive_read() {
-    /* should cma_rsize should be reset here ? */
-    return cma_wsize;
-}
-
-
-#if 1 // defined(__wasi__)
-#   include "./interactive_one_wasi.c"
-#else
-#   include "./interactive_one_emsdk.c"
-#endif
-
+#include "./interactive_one.c"
 
 
 static void
@@ -364,10 +344,13 @@ void pgl_backend() {
 
     if (async_restart) {
 // old 487
-    {
+
 #if PGDEBUG
-        fprintf(stdout, "\n\n\n# 483: restarting in single mode after initdb with user '%s' instead of %s\n", getenv("PGUSER"), PGUSER);
-        setenv("PGUSER", PGUSER, 1);
+        fprintf(stdout, "\n\n\n\n"
+"=========================== BACKEND ====================================\n"
+"# 351: FIXME: restarting in single mode after initdb with user '%s' instead of %s\n", PGUSER, getenv("PGUSER"));
+        // setenv("PGUSER", PGUSER, 1);
+        // main_post();
 #endif
         char *single_argv[] = {
             WASM_PREFIX "/bin/postgres",
@@ -382,8 +365,9 @@ void pgl_backend() {
         int single_argc = sizeof(single_argv) / sizeof(char*) - 1;
         optind = 1;
         RePostgresSingleUserMain(single_argc, single_argv, PGUSER);
+//        AsyncPostgresSingleUserMain(single_argc, single_argv, PGUSER, async_restart);
 PDEBUG("# 384: initdb faking shutdown to complete WAL/OID states in single mode");
-    }
+
         goto backend_started;
 
     }
@@ -654,7 +638,7 @@ int
 main(int argc, char **argv)
 {
     int exit_code = 0;
-    main_pre(argc,argv);
+    main_pre(argc, argv);
 #if PGDEBUG
     printf("# 616: argv0 (%s) PGUSER=%s PGDATA=%s\n PGDATABASE=%s REPL=%s\n",
         argv[0], PGUSER, PGDATA,  getenv("PGDATABASE"), getenv("REPL") );

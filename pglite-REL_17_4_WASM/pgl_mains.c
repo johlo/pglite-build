@@ -240,13 +240,14 @@ AsyncPostgresSingleUserMain(int argc, char *argv[], const char *username, int as
 	const char *dbname = NULL;
 PDEBUG("# 254:"__FILE__);
 
-	/* Initialize startup process environment. */
+if (!async_restart)	/* Initialize startup process environment. */
 	InitStandaloneProcess(argv[0]);
 PDEBUG("# 254:"__FILE__);
+if (!async_restart)
 	/* Set default values for command-line options.	 */
 	InitializeGUCOptions();
 PDEBUG("# 257:"__FILE__);
-	/* Parse command-line options. */
+if (!async_restart)	/* Parse command-line options. */
 	process_postgres_switches(argc, argv, PGC_POSTMASTER, &dbname);
 PDEBUG("# 260:"__FILE__);
 	/* Must have gotten a database name, or have a default (the username) */

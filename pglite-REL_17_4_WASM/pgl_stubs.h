@@ -1,5 +1,29 @@
 #pragma once
 
+// wasi only stubs
+
+#if defined(__wasi__)
+/*
+void
+set_pglocale_pgservice(const char *argv0, const char *app) {
+}
+get_progname
+get_user_name_or_exit
+pg_printf
+
+*/
+
+#endif
+
+
+
+
+
+
+
+
+
+
 static void
 init_locale(const char *categoryname, int category, const char *locale)
 {

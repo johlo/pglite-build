@@ -72,8 +72,8 @@ then
     echo "  *  skipping pg build, using previous install from ${PGROOT}"
 else
 
-    mkdir -p build/postgres
-    pushd build/postgres
+    mkdir -p ${BUILD_PATH}
+    pushd ${BUILD_PATH}
 
     # create empty package.json to avoid emsdk node conflicts
     # with root package.json of project
@@ -96,7 +96,7 @@ else
 #  --disable-atomics https://github.com/WebAssembly/threads/pull/147  "Allow atomic operations on unshared memories"
 
 
-    COMMON_CFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS ${CC_PGLITE} -Wno-declaration-after-statement -Wno-macro-redefined -Wno-unused-function -Wno-missing-prototypes -Wno-incompatible-pointer-types"
+    COMMON_CFLAGS="${CC_PGLITE} -fpic -Wno-declaration-after-statement -Wno-macro-redefined -Wno-unused-function -Wno-missing-prototypes -Wno-incompatible-pointer-types"
 
     if ${WASI}
     then
@@ -105,9 +105,12 @@ else
         XML2=""
         UUID=""
 
-        WASM_LDFLAGS="-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks"
-        WASM_CFLAGS="${COMMON_CFLAGS} -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_SIGNAL -D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_GETPID"
+        cp ${PORTABLE}/wasi/wasi_port.c /tmp/pglite/include/sdk_port.c
+ # -lwasi-emulated-signal -D_WASI_EMULATED_SIGNAL -lwasi-emulated-getpid -D_WASI_EMULATED_GETPID
+        WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread -lwasi-emulated-process-clocks"
+        WASM_CFLAGS="-DSDK_PORT=/tmp/pglite/include/sdk_port.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS"
         export MAIN_MODULE=""
+
     else
         BUILD=emscripten
 
@@ -120,8 +123,8 @@ else
             XML2="--with-zlib --with-libxml --with-libxslt"
         fi
         UUID="--with-uuid=ossp"
-        WASM_CFLAGS="${COMMON_FLAGS}"
-        WASM_LDFLAGS=""
+        WASM_CFLAGS="${COMMON_CFLAGS}"
+        WASM_LDFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS"
         export MAIN_MODULE="-sMAIN_MODULE=1"
     fi
 
@@ -148,11 +151,10 @@ else
  ${UUID} ${XML2} ${PGDEBUG}"
 
 
-
     mkdir -p bin
 
+    GETZIC=${GETZIC:-true}
 
-    GETZIC=true
 
     EMCC_NODE="-sEXIT_RUNTIME=1 -DEXIT_RUNTIME -sNODERAWFS -sENVIRONMENT=node"
 
@@ -171,8 +173,12 @@ END
 #. ${SDKROOT}/wasm32-wasi-shell.sh
 TZ=UTC PGTZ=UTC $(command -v wasi-run) $(pwd)/src/timezone/zic.wasi \$@
 END
+        else
+     		echo "
+   * Using system ZIC from ${ZIC:-/usr/sbin/zic}
+   "
+     		cp ${ZIC:-/usr/sbin/zic} bin/
         fi
-
     else
         export EXT=wasm
         cat > ${PGROOT}/config.site <<END
@@ -186,6 +192,12 @@ END
 #. ${SDKROOT}/wasm32-bi-emscripten-shell.sh
 TZ=UTC PGTZ=UTC $(command -v node) $(pwd)/src/timezone/zic.cjs \$@
 END
+        else
+     		echo "
+   * Using system ZIC from ${ZIC:-/usr/sbin/zic}
+   "
+     		cp ${ZIC:-/usr/sbin/zic} bin/
+
         fi
     fi
 
@@ -247,12 +259,6 @@ END
         exit 236
     fi
 
-    if $WASI
-    then
-        sed -i 's|-pthread||g' ./src/Makefile.global
-    fi
-
-
     # --disable-shared not supported so be able to use a fake linker
 
     > /tmp/disable-shared.log
@@ -304,9 +310,16 @@ END
 
     # Keep a shell script for fast rebuild with env -i from cmdline
 
+    # same script handle emcc and wasi
+
     cat > pg-make.sh <<END
 #!/bin/bash
-. ${SDKROOT}/wasm32-bi-emscripten-shell.sh
+if $WASI
+then
+    . ${SDKROOT}/wasm32-wasi-shell.sh
+else
+    . ${SDKROOT}/wasm32-bi-emscripten-shell.sh
+fi
 export PATH=$PGROOT/bin:\$PATH
 
 # ZIC=$ZIC
@@ -323,9 +336,16 @@ echo '
 Linking ...
 
 '
-cat $SDKROOT/VERSION
+
 rm -vf libp*.a src/backend/postgres*
-EMCC_CFLAGS="${CC_PGLITE} ${EMCC_NODE}" emmake make AR=\${EMSDK}/upstream/bin/llvm-ar PORTNAME=emscripten $BUILD=1 -j \${NCPU:-$NCPU} \$@
+
+if $WASI
+then
+    WASI_CFLAGS="${CC_PGLITE}" emmake make AR=\${WASISDK}/upstream/bin/llvm-ar PORTNAME=$BUILD $BUILD=1 -j \${NCPU:-$NCPU} \$@
+else
+    cat $SDKROOT/VERSION
+    EMCC_CFLAGS="${CC_PGLITE} ${EMCC_NODE}" emmake make AR=\${EMSDK}/upstream/bin/llvm-ar PORTNAME=emscripten $BUILD=1 -j \${NCPU:-$NCPU} \$@
+fi
 
 echo '____________________________________________________________'
 du -hs src/port/libpgport_srv.a src/common/libpgcommon_srv.a libp*.a src/backend/postgres*
@@ -340,18 +360,7 @@ END
         echo install ok
         if $WASI
         then
-            # remove unlinked server
-            for todel in src/backend/postgres src/backend/postgres.wasi $PGROOT/bin/postgres $PGROOT/bin/postgres.wasi
-            do
-                [ -f $todel ] && rm $todel
-            done
-
-            pushd ../..
-                chmod +x ./wasm-build/linkwasi.sh
-                # WASI_CFLAGS="$WASI_CFLAGS"
-                ./wasm-build/linkwasi.sh || exit 251
-            popd
-            cp src/backend/postgres.wasi $PGROOT/bin/ || exit 253
+            cp src/backend/postgres.wasi $PGROOT/bin/ || exit 363
         else
             if $DEBUG
             then

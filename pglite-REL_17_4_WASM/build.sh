@@ -5,7 +5,13 @@ WORKSPACE=$(pwd)
 PGROOT=/tmp/pglite
 
 PGSRC=${WORKSPACE}
-PGBUILD=${WORKSPACE}/build/postgres
+WASI=${WASI:-false}
+if $WASI
+then
+    PGBUILD=${WORKSPACE}/build/postgres-wasi
+else
+    PGBUILD=${WORKSPACE}/build/postgres
+fi
 
 LIBPGCORE=${PGBUILD}/libpgcore.a
 

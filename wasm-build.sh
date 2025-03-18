@@ -10,6 +10,9 @@ export CI=${CI:-false}
 export PORTABLE=${PORTABLE:-$(pwd)/wasm-build}
 export SDKROOT=${SDKROOT:-/tmp/sdk}
 
+export GETZIC=${GETZIC:-true}
+# systems default may not be in path
+export ZIC=${ZIC:-/usr/sbin/zic}
 
 # data transfer zone this is == (wire query size + result size ) + 2
 # expressed in EMSDK MB, max is 13MB on emsdk 3.1.74+
@@ -38,11 +41,31 @@ export PGUSER=${PGUSER:-postgres}
 if $DEBUG
 then
     export COPTS=${COPTS:-"-O2 -g3"}
-    export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
+    if $WASI
+    then
+        export LOPTS=${LOPTS:-"-O2 -g3"}
+    else
+        export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
+    fi
 else
-    export COPTS=${COPTS:-"-Oz -g0"}
-    export LOPTS=${LOPTS:-'-Oz -g0 --closure=0 --closure-args=--externs=/tmp/externs.js -sASSERTIONS=0'}
+    if $WASI
+    then
+        export COPTS=${COPTS:-"-Oz -g0"}
+        export LOPTS=${LOPTS:-"-Oz -g0"}
+    else
+        # DO NOT CHANGE COPTS - optimized wasm corruption fix
+        export COPTS="-O2 -g3 --no-wasm-opt"
+        export LOPTS=${LOPTS:-"-Oz -g0 --closure=0 --closure-args=--externs=/tmp/externs.js -sASSERTIONS=0"}
+    fi
 fi
+
+if $WASI
+then
+    export BUILD_PATH=build/postgres-wasi
+else
+    export BUILD_PATH=build/postgres
+fi
+
 
 export PGDATA=${PGROOT}/base
 export PGPATCH=${WORKSPACE}/patches
@@ -52,13 +75,7 @@ chmod +x ${PORTABLE}/*.sh ${PORTABLE}/extra/*.sh
 # exit on error
 EOE=false
 
-if ${PORTABLE}/sdk.sh
-then
-    echo "$PORTABLE : sdk check passed (emscripten+wasi)"
-else
-    echo sdk failed
-    exit 40
-fi
+
 
 
 # default to user writeable paths in /tmp/ .
@@ -90,6 +107,7 @@ export PG_DEBUG_HEADER="${PGROOT}/include/pg_debug.h"
 
 
 echo "
+
 System node/pnpm ( may interfer) :
 
         node : $(which node) $(which node && $(which node) -v)
@@ -108,6 +126,7 @@ then
     echo "Wasi build (experimental)"
     export WASI_SDK=25.0
     export WASI_SDK_PREFIX=${SDKROOT}/wasisdk/wasi-sdk-${WASI_SDK}-x86_64-linux
+    #export WASI_SDK_PREFIX=${SDKROOT}/wasisdk/upstream
     export WASI_SYSROOT=${WASI_SDK_PREFIX}/share/wasi-sysroot
 
     if [ -f ${WASI_SYSROOT}/extra ]
@@ -148,6 +167,14 @@ else
     then
         echo "emcc found in PATH=$PATH"
     else
+        if ${PORTABLE}/sdk.sh
+        then
+            echo "$PORTABLE : sdk check passed (emscripten)"
+        else
+            echo emsdk failed
+            exit 150
+        fi
+
         . ${SDKROOT}/wasm32-bi-emscripten-shell.sh
     fi
     export PG_LINK=${PG_LINK:-$(which emcc)}
@@ -281,6 +308,7 @@ END
 
     # store all pg options that have impact on cmd line initdb/boot
     cat > ${PGROOT}/pgopts.sh <<END
+export BUILD_PATH="$BUILD_PATH"
 export COPTS="$COPTS"
 export LOPTS="$LOPTS"
 export PGDEBUG="$PGDEBUG"
@@ -334,7 +362,7 @@ fi
 
 # put local zic in the path from build dir
 # put emsdk-shared and also pg_config from the install dir.
-export PATH=${WORKSPACE}/build/postgres/bin:${PGROOT}/bin:$PATH
+export PATH=${WORKSPACE}/${BUILD_PATH}/bin:${PGROOT}/bin:$PATH
 
 
 # At this stage, PG should be installed to PREFIX and ready for linking
@@ -395,7 +423,7 @@ then
 
         Building contrib extension : $ext : begin
 "
-                pushd build/postgres/contrib/$ext
+                pushd ${BUILD_PATH}/contrib/$ext
                 if PATH=$PREFIX/bin:$PATH emmake make install 2>&1 >/dev/null
                 then
                     echo "

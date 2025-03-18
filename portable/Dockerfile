@@ -9,7 +9,7 @@ RUN apk add --no-cache --virtual .build-deps \
 	    tar file lz4 \
 	    git patch bison flex \
         findutils binutils coreutils \
-	    libffi curl perl nodejs \
+	    libffi tzdata-utils curl perl nodejs \
         make autoconf automake libtool pkgconfig \
     ;
 

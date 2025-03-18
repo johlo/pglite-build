@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-export PG_VERSION=${PG_BRANCH:-17.4}
+export PG_VERSION=${PG_VERSION:-17.4}
 export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
 export PORTABLE=$(realpath $(dirname $0))
 export ROOT=$(realpath $(pwd))
@@ -479,5 +479,5 @@ Fatal: failed to apply patch : $one
         alpineproot "apk add bash;/bin/bash --init-file /initrc"
     fi
 else
-    echo Error need PG_BRANCH=$PG_BRANCH set to a valid branch
+    echo "Error need PG_BRANCH=$PG_BRANCH set to a valid WASM branch ( not pglite )"
 fi
