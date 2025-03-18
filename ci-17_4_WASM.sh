@@ -128,7 +128,7 @@ echo "
 "
 if $CI
 then
-    pushd ${BUILD_PATH}
+    pushd ${WORKSPACE}/postgresql-${PG_BRANCH}/${BUILD_PATH}
         echo "# packing dev files to /tmp/sdk/libpglite-emsdk.tar.gz"
         tar -cpRz libpgcore.a pglite.* > /tmp/sdk/libpglite-emsdk.tar.gz
     popd
@@ -139,7 +139,7 @@ then
     popd
 fi
 
-pushd pglite
+pushd ${WORKSPACE}/pglite
     pnpm run ts:build || exit 118
 popd
 
