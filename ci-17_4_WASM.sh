@@ -8,8 +8,8 @@ export USE_ICU=${USE_ICU:-false}
 
 
 
-PG_DIST_EXT="${WORKSPACE}/postgresql/dist/extensions-emsdk"
-PG_DIST_PGLITE="${WORKSPACE}/postgresql/dist/pglite-sandbox"
+PG_DIST_EXT="${WORKSPACE}/postgresql-${PG_BRANCH}/extensions-emsdk"
+PG_DIST_PGLITE="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/pglite-sandbox"
 
 # for local testing
 if [ -d "/srv/www/html/pglite-web" ]
@@ -30,6 +30,9 @@ fi
 [ -f postgresql-${PG_BRANCH}/configure ] \
  || git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
 
+[ -f postgresql-pglite/configure ] \
+  || ln -s ${WORKSPACE}/postgresql-${PG_BRANCH} ${WORKSPACE}/postgresql-pglite
+
 chmod +x portable/*.sh wasm-build/*.sh
 cp -R wasm-build* extra patches-${PG_BRANCH} postgresql-${PG_BRANCH}/
 
@@ -41,7 +44,7 @@ else
     cp -Rv pglite-${PG_BRANCH}/* postgresql-${PG_BRANCH}/pglite-wasm/
 fi
 
-pushd postgresql-${PG_BRANCH}
+cd ${WORKSPACE}/postgresql-${PG_BRANCH}
 
     cat > $CONTAINER_PATH/portable.opts <<END
 export DEBUG=${DEBUG}
@@ -70,16 +73,15 @@ END
 
 "
 
-popd
 
 if [ -d ${WORKSPACE}/pglite/packages/pglite ]
 then
-    echo "using local pglite tree for release"
+    echo "using local pglite folder from ${WORKSPACE}/pglite/packages/pglite for release"
 else
     git clone --no-tags --depth 1 --single-branch --branch pmp-p/pglite-build17 https://github.com/electric-sql/pglite pglite
 fi
         
-pushd ${WORKSPACE}/pglite
+cd ${WORKSPACE}/pglite
     # clean
     [ -d packages/pglite/release ] && rm packages/pglite/release/* packages/pglite/dist/* packages/pglite/dist/*/*
 
@@ -91,7 +93,7 @@ pushd ${WORKSPACE}/pglite
     #update
     mv -vf ${WORKSPACE}/postgresql-${PG_BRANCH}/pglite.* packages/pglite/release/
     mv -vf ${PG_DIST_EXT}/*.tar.gz packages/pglite/release/
-popd
+
 
 # when outside CI use emsdk node
 if [ -d /srv/www/html/pglite-web ]
@@ -104,17 +106,18 @@ echo "
 "
 if $CI
 then
-    pushd build/postgres
+    pushd ${WORKSPACE}/postgresql-${PG_BRANCH}
         echo "# packing dev files to /tmp/sdk/libpglite-emsdk.tar.gz"
         tar -cpRz libpgcore.a pglite.* > /tmp/sdk/libpglite-emsdk.tar.gz
     popd
 
-    pushd pglite
+    pushd ${WORKSPACE}/pglite
         npm install -g pnpm vitest
         pnpm install
     popd
 fi
 
+cd ${WORKSPACE}
 
 pushd pglite
     if pnpm run ts:build
