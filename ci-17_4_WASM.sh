@@ -85,6 +85,7 @@ echo "
 
 "
 
+cd ${WORKSPACE}
 
 if [ -d ${WORKSPACE}/pglite/packages/pglite ]
 then
@@ -120,7 +121,7 @@ echo "
 "
 if $CI
 then
-    pushd ${WORKSPACE}/postgresql-${PG_BRANCH}
+    pushd ${WORKSPACE}/postgresql-${PG_BRANCH}/build/postgres
         echo "# packing dev files to /tmp/sdk/libpglite-emsdk.tar.gz"
         tar -cpRz libpgcore.a pglite.* > /tmp/sdk/libpglite-emsdk.tar.gz
     popd
@@ -131,19 +132,16 @@ then
     popd
 fi
 
-cd ${WORKSPACE}
-
-pushd pglite
-    if pnpm run ts:build
-    then
-        pushd packages/pglite
-            if $CI
-            then
-                pnpm vitest tests/basic.test.js || exit 99
-            fi
-        popd
-    fi
-popd
+cd ${WORKSPACE}/pglite
+if pnpm run ts:build
+then
+    pushd packages/pglite
+        if $CI
+        then
+            pnpm vitest tests/basic.test.js || exit 99
+        fi
+    popd
+fi
 
 
 mkdir -p ${PG_DIST_WEB}
@@ -169,6 +167,8 @@ then
         mv ${PG_DIST_WEB} /tmp/web
     fi
 fi
+
+cd ${WORKSPACE}
 
 ./runtests.sh
 
