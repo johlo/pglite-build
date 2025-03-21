@@ -146,6 +146,13 @@ if [ -d ${PG_DIST_WEB} ]
 then
     pushd postgresql-${PG_BRANCH}
         git restore src/test/Makefile src/test/isolation/Makefile
+        if $LOCAL
+        then
+            echo "# backup pglite workfiles"
+            [ -d pglite-wasm ] && cp -R pglite-wasm/* ${WORKSPACE}/pglite-${PG_BRANCH}/
+        else
+            mv ${PG_DIST_WEB} /tmp/web
+        fi
     popd
 
     echo "# use released files for web test"
@@ -154,14 +161,6 @@ then
     cp ${WORKSPACE}/pglite/packages/pglite/examples/{styles.css,utils.js} ${PG_DIST_WEB}/examples/
     cp -f ${WORKSPACE}/pglite/packages/pglite/release/* ${PG_DIST_WEB}/
     du -hs ${PG_DIST_WEB}/pglite.*
-
-    if $LOCAL
-    then
-        echo "# backup pglite workfiles"
-        [ -d pglite-wasm ] && cp -R pglite-wasm/* ${WORKSPACE}/pglite-${PG_BRANCH}/
-    else
-        mv ${PG_DIST_WEB} /tmp/web/
-    fi
 fi
 
 

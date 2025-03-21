@@ -6,20 +6,23 @@ PGROOT=/tmp/pglite
 
 PGSRC=${WORKSPACE}
 WASI=${WASI:-false}
-if $WASI
+
+if ${WASI:-false}
 then
-    PGBUILD=${WORKSPACE}/build/postgres-wasi
+    BUILD=wasi
 else
-    PGBUILD=${WORKSPACE}/build/postgres
+    BUILD=emscripten
 fi
 
-LIBPGCORE=${PGBUILD}/libpgcore.a
+BUILD_PATH=build/postgres-${BUILD}
+
+LIBPGCORE=${BUILD_PATH}/libpgcore.a
 
 WEBROOT=${PGBUILD}/web
 
-PGINC="-I/tmp/pglite/include \
+PGINC="-I${PGROOT}/include \
  -I${PGSRC}/src/include -I${PGSRC}/src/interfaces/libpq \
- -I${PGBUILD}/src/include"
+ -I${BUILD_PATH}/src/include"
 
 
 if $WASI
@@ -78,7 +81,7 @@ Linking to libpgcore static from $LIBPGCORE
 
 Folders :
     source : $PGSRC
-     build : $PGBUILD
+     build : $BUILD_PATH
     target : $WEBROOT
 
     CPOPTS : $COPTS
@@ -112,14 +115,14 @@ ________________________________________________________
 #     ${PGINC} \
 #     -o ${PGBUILD}/initdb.o -c ${PGSRC}/src/bin/initdb/initdb.c
 
-    ${CC} ${CC_PGLITE} ${PGINC} -o ${PGBUILD}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
+    ${CC} ${CC_PGLITE} ${PGINC} -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
      -Wno-incompatible-pointer-types-discards-qualifiers
 
     COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite-rawfs.js -ferror-limit=1  \
      -sFORCE_FILESYSTEM=1 $EMCC_NODE \
          -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
          -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${PGBUILD}/pglite.o \
+     ${PGINC} ${BUILD_PATH}/pglite.o \
      $LINKER $LIBPGCORE \
      $LINK_ICU \
      -lnodefs.js -lidbfs.js -lxml2 -lz
@@ -138,7 +141,7 @@ ________________________________________________________
      -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=Module \
          -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
          -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${PGBUILD}/pglite.o \
+     ${PGINC} ${BUILD_PATH}/pglite.o \
      $LINKER $LIBPGCORE \
      $LINK_ICU \
      -lnodefs.js -lidbfs.js -lxml2 -lz
