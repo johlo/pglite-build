@@ -67,7 +67,7 @@ CC_PGLITE=$CC_PGLITE
 
 "
 
-if [ -f ${PGROOT}/pg.installed ]
+if [ -f ${PGROOT}/pg.${BUILD}.installed ]
 then
     echo "  *  skipping pg build, using previous install from ${PGROOT}"
 else
@@ -98,6 +98,9 @@ else
 
     COMMON_CFLAGS="${CC_PGLITE} -fpic -Wno-declaration-after-statement -Wno-macro-redefined -Wno-unused-function -Wno-missing-prototypes -Wno-incompatible-pointer-types"
 
+    cp ${PORTABLE}/sdk_port.h ${PGROOT}/include/sdk_port.h
+    cp ${PGSRC}/src/include/port/wasm_common.h ${PGROOT}/include/wasm_common.h
+
     if ${WASI}
     then
         BUILD=wasi
@@ -105,10 +108,11 @@ else
         XML2=""
         UUID=""
 
-        cp ${PORTABLE}/wasi/wasi_port.c /tmp/pglite/include/sdk_port.c
+        cp ${PORTABLE}/sdk_port-wasi-* /tmp/pglite/include/
+
  # -lwasi-emulated-signal -D_WASI_EMULATED_SIGNAL -lwasi-emulated-getpid -D_WASI_EMULATED_GETPID
         WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread -lwasi-emulated-process-clocks"
-        WASM_CFLAGS="-DSDK_PORT=/tmp/pglite/include/sdk_port.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS"
+        WASM_CFLAGS="-DSDK_PORT=${PREFIX}/include/sdk_port-wasi.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS"
         export MAIN_MODULE=""
 
     else
@@ -137,8 +141,6 @@ else
         CNF_ICU="--without-icu"
     fi
 
-
-    cp ${PGSRC}/src/include/port/wasm_common.h /tmp/pglite/include/wasm_common.h
 
     [ -f ${PREFIX}/devices/emsdk/usr/lib/libossp-uuid.a ] && rm ${PREFIX}/devices/emsdk/usr/lib/libossp-uuid.a
     [ -f ${PREFIX}/devices/emsdk/usr/lib/libouuid.a ] && rm ${PREFIX}/devices/emsdk/usr/lib/libuuid.a
@@ -381,7 +383,7 @@ END
 
         pushd ${PGROOT}
 
-        find . -type f | grep -v plpgsql > ${PGROOT}/pg.installed
+        find . -type f | grep -v plpgsql > ${PGROOT}/pg.${BUILD}.installed
         popd
 
         goback=$(pwd)
@@ -390,7 +392,7 @@ END
         pushd $goback
 
         pushd ${PGROOT}
-        find . -type f  > ${PGROOT}/pg.installed
+        find . -type f  > ${PGROOT}/pg.${BUILD}.installed
         popd
 
     else

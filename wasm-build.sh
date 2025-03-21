@@ -18,7 +18,7 @@ export ZIC=${ZIC:-/usr/sbin/zic}
 # expressed in EMSDK MB, max is 13MB on emsdk 3.1.74+
 export CMA_MB=${CMA_MB:-12}
 export TOTAL_MEMORY=${TOTAL_MEMORY:-180MB}
-export WASI=${WASI:-false}
+
 
 export WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
 export PGROOT=${PGROOT:-/tmp/pglite}
@@ -37,21 +37,27 @@ export PGUSER=${PGUSER:-postgres}
 
 [ -f /portable.opts ] && . /portable.opts
 
+# can override from cmdl line
+export WASI=${WASI:-false}
 
-if $DEBUG
+
+if $WASI
 then
-    export COPTS=${COPTS:-"-O2 -g3"}
-    if $WASI
+    BUILD=wasi
+    if $DEBUG
     then
+        export COPTS=${COPTS:-"-O2 -g3"}
         export LOPTS=${LOPTS:-"-O2 -g3"}
     else
-        export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
-    fi
-else
-    if $WASI
-    then
         export COPTS=${COPTS:-"-Oz -g0"}
         export LOPTS=${LOPTS:-"-Oz -g0"}
+    fi
+else
+    BUILD=emscripten
+    if $DEBUG
+    then
+        export COPTS="-O2 -g3 --no-wasm-opt"
+        export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
     else
         # DO NOT CHANGE COPTS - optimized wasm corruption fix
         export COPTS="-O2 -g3 --no-wasm-opt"
@@ -59,13 +65,8 @@ else
     fi
 fi
 
-if $WASI
-then
-    export BUILD_PATH=build/postgres-wasi
-else
-    export BUILD_PATH=build/postgres
-fi
-
+export BUILD
+export BUILD_PATH=build/postgres-${BUILD}
 
 export PGDATA=${PGROOT}/base
 export PGPATCH=${WORKSPACE}/patches

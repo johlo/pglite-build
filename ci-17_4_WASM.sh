@@ -13,7 +13,7 @@ if $WASI
 then
     export BUILD_PATH=build/postgres-wasi
 else
-    export BUILD_PATH=build/postgres
+    export BUILD_PATH=build/postgres-emsdk
 fi
 
 
@@ -55,10 +55,8 @@ cd postgresql-${PG_BRANCH}
     cat > $CONTAINER_PATH/portable.opts <<END
 export DEBUG=${DEBUG}
 export USE_ICU=${USE_ICU}
-export BUILD_PATH=$BUILD_PATH
 export PG_VERSION=$PG_VERSION
 export PG_BRANCH=$PG_BRANCH
-export WASI=$WASI
 export GETZIC=$GETZIC
 export ZIC=$ZIC
 END
