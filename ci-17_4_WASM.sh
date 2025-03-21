@@ -65,7 +65,7 @@ END
 # execute prooted build
 ${WORKSPACE}/portable/portable.sh
 
-if [ -f ${WORKSPACE}/postgresql/${BUILD_PATH}/libpgcore.a ]
+if [ -f ${WORKSPACE}/postgresql-${PG_BRANCH}/${BUILD_PATH}/libpgcore.a ]
 then
     echo "found postgres core static libraries in ${BUILD_PATH}"
 else
