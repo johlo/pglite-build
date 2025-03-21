@@ -13,7 +13,7 @@ if $WASI
 then
     export BUILD_PATH=build/postgres-wasi
 else
-    export BUILD_PATH=build/postgres-emsdk
+    export BUILD_PATH=build/postgres-emscripten
 fi
 
 
@@ -51,7 +51,7 @@ else
 fi
 
 cd postgresql-${PG_BRANCH}
-
+#TODO: pglite has .buildconfig in postgres source dir instead.
     cat > $CONTAINER_PATH/portable.opts <<END
 export DEBUG=${DEBUG}
 export USE_ICU=${USE_ICU}
@@ -65,12 +65,12 @@ END
 # execute prooted build
 ${WORKSPACE}/portable/portable.sh
 
-if [ -f ${BUILD_PATH}/libpgcore.a ]
+if [ -f ${WORKSPACE}/postgresql/${BUILD_PATH}/libpgcore.a ]
 then
     echo "found postgres core static libraries in ${BUILD_PATH}"
 else
-    echo "failed to build libpgcore static"
-    exit 65
+    echo "failed to build libpgcore static at ${WORKSPACE}/postgresql/${BUILD_PATH}/libpgcore.a"
+    exit 73
 fi
 
 cd ${WORKSPACE}
@@ -138,7 +138,7 @@ then
 fi
 
 pushd ${WORKSPACE}/pglite
-    pnpm run ts:build || exit 118
+    pnpm run ts:build || exit 141
 popd
 
 mkdir -p ${PG_DIST_WEB}

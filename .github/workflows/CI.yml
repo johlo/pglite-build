@@ -19,9 +19,14 @@ jobs:
     name: Build WASM Postgres
     runs-on: ubuntu-24.04
     env:
+      SDKROOT: /tmp/sdk
       WASI_SDK_VERSION: 24.0.5
       WASI_SDK_ARCHIVE: python3.13-wasi-sdk-Ubuntu-22.04.tar.lz4
       DEBUG: false
+      GETZIC: false
+      ZIC: /usr/sbin/zic
+      USE_ICU: false
+
 
     steps:
       - uses: actions/checkout@v4
