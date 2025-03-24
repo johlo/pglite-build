@@ -449,44 +449,48 @@ then
 
 fi
 
-
 # only build extra when targeting pglite-wasm .
-
+pwd
 if [ -f  ${WORKSPACE}/pglite-wasm/build.sh ]
 then
-
-    if echo " $*"|grep -q " extra"
+    if $WASI
     then
-        for extra_ext in  ${EXTRA_EXT:-"vector"}
-        do
-            if $CI
-            then
-                #if [ -d $PREFIX/include/X11 ]
-                if true
+        echo "
+    * WASI build : skipping extra extensions and FS
+"
+    else
+
+        if echo " $*"|grep -q " extra"
+        then
+            for extra_ext in  ${EXTRA_EXT:-"vector"}
+            do
+                if $CI
                 then
-                    echo -n
-                else
-                    # install EXTRA sdk
-                    . /etc/lsb-release
-                    DISTRIB="${DISTRIB_ID}-${DISTRIB_RELEASE}"
-                    CIVER=${CIVER:-$DISTRIB}
-                    SDK_URL=https://github.com/pygame-web/python-wasm-sdk-extra/releases/download/$SDK_VERSION/python3.13-emsdk-sdk-extra-${CIVER}.tar.lz4
-                    echo "Installing $SDK_URL"
-                    curl -sL --retry 5 $SDK_URL | tar xvP --use-compress-program=lz4 | pv -p -l -s 15000 >/dev/null
-                    chmod +x ./extra/*.sh
+                    #if [ -d $PREFIX/include/X11 ]
+                    if true
+                    then
+                        echo -n
+                    else
+                        # install EXTRA sdk
+                        . /etc/lsb-release
+                        DISTRIB="${DISTRIB_ID}-${DISTRIB_RELEASE}"
+                        CIVER=${CIVER:-$DISTRIB}
+                        SDK_URL=https://github.com/pygame-web/python-wasm-sdk-extra/releases/download/$SDK_VERSION/python3.13-emsdk-sdk-extra-${CIVER}.tar.lz4
+                        echo "Installing $SDK_URL"
+                        curl -sL --retry 5 $SDK_URL | tar xvP --use-compress-program=lz4 | pv -p -l -s 15000 >/dev/null
+                        chmod +x ./extra/*.sh
+                    fi
                 fi
-            fi
-            echo "======================= ${extra_ext} : $(pwd) ==================="
+                echo "======================= ${extra_ext} : $(pwd) ==================="
 
-            ./extra/${extra_ext}.sh || exit 400
+                ./extra/${extra_ext}.sh || exit 480
 
-            python3 ${PORTABLE}/pack_extension.py
-        done
-    fi
+                python3 ${PORTABLE}/pack_extension.py
+            done
+        fi
 
-    # build pglite initdb/loop/transport/repl
-
-    export PGPRELOAD="\
+        # this is for initial emscripten MEMFS
+        export PGPRELOAD="\
 --preload-file ${PGROOT}/share/postgresql@${PGROOT}/share/postgresql \
 --preload-file ${PGROOT}/lib/postgresql@${PGROOT}/lib/postgresql \
 --preload-file ${PGROOT}/password@${PGROOT}/password \
@@ -494,7 +498,10 @@ then
 --preload-file placeholder@${PGROOT}/bin/postgres \
 --preload-file placeholder@${PGROOT}/bin/initdb\
 "
-
+    fi
+    echo "
+    * building + linking pglite-wasm (initdb/loop/transport/repl/backend)
+"
     ${WORKSPACE}/pglite-wasm/build.sh
 fi
 

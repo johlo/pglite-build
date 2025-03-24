@@ -79,8 +79,6 @@ extern int BootstrapModeMain(int, char **, int);
 #include "libpq/pqformat.h"
 
 
-
-
 volatile bool send_ready_for_query = true;
 volatile bool idle_in_transaction_timeout_enabled = false;
 volatile bool idle_session_timeout_enabled = false;
@@ -94,7 +92,8 @@ void pg_free(void *ptr) {
     free(ptr);
 }
 
-#include "../backend/tcop/postgres.c"
+
+#include "../src/backend/tcop/postgres.c"
 
 
 // initdb + start on fd (pipe emulation)
@@ -529,7 +528,7 @@ initdb_done:;
 
 
 
-
+#if HAS_REPL
 int
 main_repl() {
     bool hadloop_error = false;
@@ -611,7 +610,7 @@ main_repl() {
     return 0;
 }
 
-
+#endif // HAS_REPL
 
 
 

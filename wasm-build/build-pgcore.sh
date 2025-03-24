@@ -69,7 +69,9 @@ CC_PGLITE=$CC_PGLITE
 
 if [ -f ${PGROOT}/pg.${BUILD}.installed ]
 then
-    echo "  *  skipping pg build, using previous install from ${PGROOT}"
+    echo "
+    * skipping pg build, using previous install from ${PGROOT}
+"
 else
 
     mkdir -p ${BUILD_PATH}
@@ -362,13 +364,12 @@ END
         echo install ok
         if $WASI
         then
-            cp src/backend/postgres.wasi $PGROOT/bin/ || exit 363
+            cp src/backend/postgres.wasi $PGROOT/bin/ || exit 365
         else
             if $DEBUG
             then
                 # built with EMCC_CFLAGS="-sEXIT_RUNTIME=1 -DEXIT_RUNTIME -sNODERAWFS -sENVIRONMENT=node" emmake make -C
                 cp src/bin/initdb/initdb.wasm $PGROOT/bin/
-
                 cp src/backend/postgres.wasm $PGROOT/bin/
 
             fi
@@ -398,7 +399,7 @@ END
     else
         cat /tmp/install.log
         echo "install failed"
-        exit 384
+        exit 400
     fi
 
     python3 > ${PGROOT}/PGPASSFILE <<END

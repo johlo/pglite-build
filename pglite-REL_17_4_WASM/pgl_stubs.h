@@ -3,25 +3,9 @@
 // wasi only stubs
 
 #if defined(__wasi__)
-/*
-void
-set_pglocale_pgservice(const char *argv0, const char *app) {
-}
-get_progname
-get_user_name_or_exit
-pg_printf
-
-*/
-
+#undef PQEXPBUFFER_H
+#include "../src/interfaces/libpq/pqexpbuffer.h"
 #endif
-
-
-
-
-
-
-
-
 
 
 static void
@@ -115,8 +99,10 @@ select_default_timezone(const char *share_path) {
 	return getenv("TZ");
 }
 
-#include "../src/interfaces/libpq/pqexpbuffer.h"
-#include "../src/fe_utils/option_utils.c"
+
+#include "../postgresql/src/fe_utils/option_utils.c"
+typedef PQExpBufferData *PQExpBuffer;
+extern void appendPQExpBufferStr(PQExpBuffer str, const char *data);
 
 bool
 appendShellStringNoError(PQExpBuffer buf, const char *str)

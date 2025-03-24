@@ -4,7 +4,13 @@ echo "pglite/build: begin"
 WORKSPACE=$(pwd)
 PGROOT=/tmp/pglite
 
-PGSRC=${WORKSPACE}
+if [ -d ${WORKSPACE}/src/fe_utils ]
+then
+    PGSRC=${WORKSPACE}
+else
+    PGSRC=${WORKSPACE}/postgresql
+fi
+
 WASI=${WASI:-false}
 
 if ${WASI:-false}
@@ -20,14 +26,89 @@ LIBPGCORE=${BUILD_PATH}/libpgcore.a
 
 WEBROOT=${PGBUILD}/web
 
-PGINC="-I${PGROOT}/include \
- -I${PGSRC}/src/include -I${PGSRC}/src/interfaces/libpq \
- -I${BUILD_PATH}/src/include"
+PGINC=" -I${BUILD_PATH}/src/include \
+-I${PGSRC}/src/include -I${PGSRC}/src \
+-I${PGSRC}/src/interfaces/libpq -I${PGROOT}/include"
+
+#  -I${PGROOT}/include/postgresql/server"
 
 
 if $WASI
 then
-    echo TODO
+
+    GLOBAL_BASE_B=$(python3 -c "print(${CMA_MB}*1024*1024)")
+echo "
+________________________________________________________
+
+wasi : $(which wasi-c) $(wasi-c -v)
+python : $(which python3) $(python3 -V)
+wasmtime : $(which wasmtime)
+
+CC=${CC:-undefined}
+
+Linking to libpgcore static from $LIBPGCORE
+
+Folders :
+    source : $PGSRC
+     build : $BUILD_PATH
+    target : $PGROOT
+
+    CPOPTS : $COPTS
+    DEBUG  : $DEBUG
+        LOPTS  : $LOPTS
+     CMA_MB : $CMA_MB
+GLOBAL_BASE : $GLOBAL_BASE_B
+
+ CC_PGLITE : $CC_PGLITE
+
+  ICU i18n : $USE_ICU
+
+INCLUDES: $PGINC
+________________________________________________________
+
+
+"
+
+
+    ${CC} ${CC_PGLITE} \
+ ${PGINC} \
+ -DPOSTGRES_C=\"../postgresql/src/backend/tcop/postgres.c\" \
+ -DPQEXPBUFFER_H=\"../postgresql/src/interfaces/libpq/pqexpbuffer.h\" \
+ -DOPTION_UTILS_C=\"../postgresql/src/fe_utils/option_utils.c\" \
+ -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
+     -Wno-incompatible-pointer-types-discards-qualifiers
+
+read
+
+    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite-rawfs.js -ferror-limit=1  \
+     -sFORCE_FILESYSTEM=1 $EMCC_NODE \
+         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
+         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
+     ${PGINC} ${BUILD_PATH}/pglite.o \
+     $LINKER $LIBPGCORE \
+     $LINK_ICU \
+     -lnodefs.js -lidbfs.js -lxml2 -lz
+
+read
+
+    # some content that does not need to ship into .data
+    for cleanup in snowball_create.sql psqlrc.sample
+    do
+        > ${PREFIX}/${cleanup}
+    done
+
+
+    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.html -ferror-limit=1 --shell-file ${WORKSPACE}/pglite-wasm/repl.html \
+     $PGPRELOAD \
+     -sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sENVIRONMENT=node,web \
+     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=Module \
+         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
+         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
+     ${PGINC} ${BUILD_PATH}/pglite.o \
+     $LINKER $LIBPGCORE \
+     $LINK_ICU \
+     -lnodefs.js -lidbfs.js -lxml2 -lz
+
 
 
 else
@@ -151,3 +232,4 @@ fi
 du -hs pglite.*
 
 echo "pglite/build: end"
+

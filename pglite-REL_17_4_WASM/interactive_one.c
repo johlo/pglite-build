@@ -1,9 +1,9 @@
 #include <unistd.h>  // access, unlink
 
-#if !defined(__wasi__)
-volatile sigjmp_buf local_sigjmp_buf;
+#if defined(__wasi__)
+// volatile sigjmp_buf void*;
 #else
-volatile sigjmp_buf void*;
+volatile sigjmp_buf local_sigjmp_buf;
 #endif
 
 /* TODO : prevent multiple write and write while reading ? */

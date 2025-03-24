@@ -40,7 +40,7 @@ pg_chmod(const char * path, int mode_t) {
 #undef FRONTEND
 
 
-#include "../postgresql/src/interfaces/libpq/pqexpbuffer.c"
+#include "../src/interfaces/libpq/pqexpbuffer.c"
 
 #define sync_pgdata(...)
 #define icu_language_tag(loc_str) icu_language_tag_idb(loc_str)
