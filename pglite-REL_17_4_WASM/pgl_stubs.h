@@ -5,7 +5,21 @@
 #if defined(__wasi__)
 #undef PQEXPBUFFER_H
 #include "../src/interfaces/libpq/pqexpbuffer.h"
+
+#else
+
+#include "../src/interfaces/libpq/pqexpbuffer.h"
+#include "../src/fe_utils/option_utils.c"
+
 #endif
+
+
+
+
+
+
+
+
 
 
 static void
@@ -100,9 +114,6 @@ select_default_timezone(const char *share_path) {
 }
 
 
-#include "../postgresql/src/fe_utils/option_utils.c"
-typedef PQExpBufferData *PQExpBuffer;
-extern void appendPQExpBufferStr(PQExpBuffer str, const char *data);
 
 bool
 appendShellStringNoError(PQExpBuffer buf, const char *str)

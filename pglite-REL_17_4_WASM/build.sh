@@ -70,7 +70,7 @@ ________________________________________________________
 "
 
 
-    ${CC} ${CC_PGLITE} \
+    ${CC} -ferror-limit=1 ${CC_PGLITE} \
  ${PGINC} \
  -DPOSTGRES_C=\"../postgresql/src/backend/tcop/postgres.c\" \
  -DPQEXPBUFFER_H=\"../postgresql/src/interfaces/libpq/pqexpbuffer.h\" \
@@ -79,6 +79,7 @@ ________________________________________________________
      -Wno-incompatible-pointer-types-discards-qualifiers
 
 read
+
 
     COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite-rawfs.js -ferror-limit=1  \
      -sFORCE_FILESYSTEM=1 $EMCC_NODE \
