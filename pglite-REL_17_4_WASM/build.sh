@@ -80,16 +80,10 @@ ________________________________________________________
 
 read
 
-
-    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite-rawfs.js -ferror-limit=1  \
-     -sFORCE_FILESYSTEM=1 $EMCC_NODE \
-         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
-         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${BUILD_PATH}/pglite.o \
-     $LINKER $LIBPGCORE \
-     $LINK_ICU \
-     -lnodefs.js -lidbfs.js -lxml2 -lz
-
+    ${CC} -fpic -ferror-limit=1 ${CC_PGLITE}  ${PGINC} \
+ -o ${BUILD_PATH}/sdk_port-wasi.o \
+ -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
+    -Wno-incompatible-pointer-types
 read
 
     # some content that does not need to ship into .data
@@ -98,19 +92,16 @@ read
         > ${PREFIX}/${cleanup}
     done
 
-
-    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.html -ferror-limit=1 --shell-file ${WORKSPACE}/pglite-wasm/repl.html \
-     $PGPRELOAD \
-     -sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sENVIRONMENT=node,web \
-     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=Module \
-         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
-         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${BUILD_PATH}/pglite.o \
+    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.wasi \
+     -nostartfiles ${PGINC} ${BUILD_PATH}/pglite.o \
+     ${BUILD_PATH}/sdk_port-wasi.o \
      $LINKER $LIBPGCORE \
      $LINK_ICU \
-     -lnodefs.js -lidbfs.js -lxml2 -lz
+ build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
+ build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
+     -lxml2 -lz
 
-
+read
 
 else
     . ${SDKROOT:-/opt/python-wasm-sdk}/wasm32-bi-emscripten-shell.sh

@@ -7,15 +7,12 @@
 #include "../src/interfaces/libpq/pqexpbuffer.h"
 
 #else
-
 #include "../src/interfaces/libpq/pqexpbuffer.h"
-#include "../src/fe_utils/option_utils.c"
-
 #endif
 
 
-
-
+// option_parse_int parse_sync_method
+#include "../src/fe_utils/option_utils.c"
 
 
 
