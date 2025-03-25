@@ -43,12 +43,6 @@ startup_hacks(const char *progname) {
 }
 
 
-void pg_repl_raf() {
-    puts("pg_repl_raf: STUB");
-}
-
-
-
 // embedded initdb requirements
 
 void

@@ -125,7 +125,7 @@ main_pre(int argc, char *argv[]) {
     char key[256];
     int i=0;
 // extra env is always after normal args
-    PDEBUG("# ============= extra argv dump ==================");
+    PDEBUG("# ============= extra argv dump ==================\n");
     {
         for (;i<argc;i++) {
             const char *kv = argv[i];
@@ -133,12 +133,12 @@ main_pre(int argc, char *argv[]) {
                 if(kv[sk]=='=')
                     goto extra_env;
 #if PGDEBUG
-            printf("%s ", kv);
+            printf("arg[%d]: %s\n", i, kv);
 #endif
         }
     }
 extra_env:;
-    PDEBUG("\n# ============= arg->env dump ==================");
+    PDEBUG("\n# ============= arg->env dump ==================\n");
     {
         for (;i<argc;i++) {
             const char *kv = argv[i];
@@ -243,13 +243,13 @@ extra_env:;
 	setenv("PGSYSCONFDIR", PREFIX, 1);
 	setenv("PGCLIENTENCODING", "UTF8", 1);
 
-    // default is to run a repl loop
-    setenv("REPL", "Y", 0);
+    // default now is no repl loop
+    setenv("REPL", "N", 0);
+
 /*
  * we cannot run "locale -a" either from web or node. the file getenv("PGSYSCONFDIR") / "locale"
  * serves as popen output
  */
-
 	setenv("LC_CTYPE", "en_US.UTF-8" , 1);
 
     /* defaults */
@@ -525,95 +525,7 @@ initdb_done:;
         // TODO raise js exception
     }
     return pgl_idb_status;
-} // pg_initdb
-
-
-
-#if REPL
-int
-main_repl() {
-    bool hadloop_error = false;
-
-    whereToSendOutput = DestNone;
-
-    if (!mkdir(PGDATA, 0700)) {
-        /* no db : run initdb now. */
-#if defined(PGDEBUG_STARTUP)
-        fprintf(stderr, "PGDATA=%s not found, running initdb with default=%s\n",PGDATA, WASM_PGDATA );
-#endif
-        #if defined(PG_INITDB_MAIN)
-            #warning "web build"
-            hadloop_error = pg_initdb() & IDB_FAILED;
-        #else
-            #warning "node build"
-            #if defined(__wasi__)
-                hadloop_error = pg_initdb() & IDB_FAILED;
-            #endif
-        #endif
-
-    } else {
-        // download a db case ?
-    	mkdirp(WASM_PGDATA);
-
-        // db fixup because empty dirs may not be packaged in git case
-	    mksub_dir(WASM_PGDATA, "/pg_wal");
-	    mksub_dir(WASM_PGDATA, "/pg_wal/archive_status");
-	    mksub_dir(WASM_PGDATA, "/pg_wal/summaries");
-
-	    mksub_dir(WASM_PGDATA, "/pg_tblspc");
-	    mksub_dir(WASM_PGDATA, "/pg_snapshots");
-	    mksub_dir(WASM_PGDATA, "/pg_commit_ts");
-	    mksub_dir(WASM_PGDATA, "/pg_notify");
-	    mksub_dir(WASM_PGDATA, "/pg_replslot");
-	    mksub_dir(WASM_PGDATA, "/pg_twophase");
-
-	    mksub_dir(WASM_PGDATA, "/pg_logical");
-	    mksub_dir(WASM_PGDATA, "/pg_logical/snapshots");
-	    mksub_dir(WASM_PGDATA, "/pg_logical/mappings");
-
-    }
-
-    if (!hadloop_error) {
-        main_post();
-
-        /*
-         * Catch standard options before doing much else, in particular before we
-         * insist on not being root.
-         */
-        if (g_argc > 1) {
-	        if (strcmp(g_argv[1], "--help") == 0 || strcmp(g_argv[1], "-?") == 0)
-	        {
-		        help(progname);
-		        exit(0);
-	        }
-	        if (strcmp(g_argv[1], "--version") == 0 || strcmp(g_argv[1], "-V") == 0)
-	        {
-		        fputs(PG_BACKEND_VERSIONSTR, stdout);
-		        exit(0);
-	        }
-
-        }
-
-        if (g_argc > 1 && strcmp(g_argv[1], "--check") == 0) {
-	        BootstrapModeMain(g_argc, g_argv, true);
-            return 0;
-        }
-
-        if (g_argc > 1 && strcmp(g_argv[1], "--boot") == 0) {
-            PDEBUG("# 1410: boot: " __FILE__ );
-            BootstrapModeMain(g_argc, g_argv, false);
-            return 0;
-        }
-
-        PDEBUG("# 570: single: " __FILE__ );
-        AsyncPostgresSingleUserMain(g_argc, g_argv, PGUSER, 0);
-    }
-    return 0;
-}
-
-#endif // REPL
-
-
+} // pgl_initdb
 
 
 
@@ -630,17 +542,14 @@ main_repl() {
     PGOPTIONS
 */
 
-
-
-
-// ???? __attribute__((export_name("_main")))
+// __attribute__((export_name("main")))
 int
 main(int argc, char **argv)
 {
     int exit_code = 0;
     main_pre(argc, argv);
 #if PGDEBUG
-    printf("# 616: argv0 (%s) PGUSER=%s PGDATA=%s\n PGDATABASE=%s REPL=%s\n",
+    printf("# 552: argv0 (%s) PGUSER=%s PGDATA=%s\n PGDATABASE=%s REPL=%s\n",
         argv[0], PGUSER, PGDATA,  getenv("PGDATABASE"), getenv("REPL") );
 #endif
 	progname = get_progname(argv[0]);
@@ -652,9 +561,14 @@ main(int argc, char **argv)
     is_embed = true;
 
     if (!is_repl) {
-        PDEBUG("# 628: exit with live runtime (nodb)");
+        PDEBUG("# 564: exit with live runtime (nodb)");
         return 0;
     }
+
+#if defined(__wasi__)
+
+
+#else
 /*
     main_post();
 
@@ -668,6 +582,7 @@ main(int argc, char **argv)
     }
 */
     emscripten_force_exit(exit_code);
+#endif
 	return exit_code;
 }
 

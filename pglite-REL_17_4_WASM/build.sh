@@ -70,38 +70,37 @@ ________________________________________________________
 "
 
 
-    ${CC} -ferror-limit=1 ${CC_PGLITE} \
- ${PGINC} \
- -DPOSTGRES_C=\"../postgresql/src/backend/tcop/postgres.c\" \
- -DPQEXPBUFFER_H=\"../postgresql/src/interfaces/libpq/pqexpbuffer.h\" \
- -DOPTION_UTILS_C=\"../postgresql/src/fe_utils/option_utils.c\" \
- -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
+    if ${CC} -ferror-limit=1 ${CC_PGLITE} \
+     ${PGINC} \
+     -DPOSTGRES_C=\"../postgresql/src/backend/tcop/postgres.c\" \
+     -DPQEXPBUFFER_H=\"../postgresql/src/interfaces/libpq/pqexpbuffer.h\" \
+     -DOPTION_UTILS_C=\"../postgresql/src/fe_utils/option_utils.c\" \
+     -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
      -Wno-incompatible-pointer-types-discards-qualifiers
+    then
+        if ${CC} -fpic -ferror-limit=1 ${CC_PGLITE}  ${PGINC} \
+         -o ${BUILD_PATH}/sdk_port-wasi.o \
+         -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
+         -Wno-incompatible-pointer-types
+        then
 
-read
+            # some content that does not need to ship into .data
+            for cleanup in snowball_create.sql psqlrc.sample
+            do
+                > ${PREFIX}/${cleanup}
+            done
 
-    ${CC} -fpic -ferror-limit=1 ${CC_PGLITE}  ${PGINC} \
- -o ${BUILD_PATH}/sdk_port-wasi.o \
- -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
-    -Wno-incompatible-pointer-types
-read
-
-    # some content that does not need to ship into .data
-    for cleanup in snowball_create.sql psqlrc.sample
-    do
-        > ${PREFIX}/${cleanup}
-    done
-
-    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.wasi \
-     -nostartfiles ${PGINC} ${BUILD_PATH}/pglite.o \
-     ${BUILD_PATH}/sdk_port-wasi.o \
-     $LINKER $LIBPGCORE \
-     $LINK_ICU \
- build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
- build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
-     -lxml2 -lz
-
-read
+            COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.wasi \
+             -nostartfiles ${PGINC} ${BUILD_PATH}/pglite.o \
+             ${BUILD_PATH}/sdk_port-wasi.o \
+             $LINKER $LIBPGCORE \
+             $LINK_ICU \
+             build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
+             build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
+             -lxml2 -lz
+            reset
+        fi
+    fi
 
 else
     . ${SDKROOT:-/opt/python-wasm-sdk}/wasm32-bi-emscripten-shell.sh

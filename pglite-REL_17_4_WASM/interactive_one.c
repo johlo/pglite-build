@@ -173,7 +173,7 @@ volatile bool is_wire = true;
 extern char * cma_port;
 
 
-__attribute__((export_name("interactive_write"))) // EMSCRIPTEN_KEEPALIVE
+__attribute__((export_name("interactive_write")))
 void
 interactive_write(int size) {
     cma_rsize = size;
@@ -328,7 +328,7 @@ PDEBUG("# 305: TODO: set a pg_main started flag");
 
 extern void pg_startcma();
 
-EMSCRIPTEN_KEEPALIVE void
+__attribute__((export_name("interactive_one"))) void
 interactive_one() {
     int	peek = -1;  /* preview of firstchar with no pos change */
 	int firstchar = 0;  /* character read from getc() */
