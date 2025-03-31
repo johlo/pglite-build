@@ -100,8 +100,14 @@ else
 
     COMMON_CFLAGS="${CC_PGLITE} -fpic -Wno-declaration-after-statement -Wno-macro-redefined -Wno-unused-function -Wno-missing-prototypes -Wno-incompatible-pointer-types"
 
-    cp ${PORTABLE}/sdk_port.h ${PGROOT}/include/sdk_port.h
+    # common to all wasm flavour
     cp ${PGSRC}/src/include/port/wasm_common.h ${PGROOT}/include/wasm_common.h
+
+    # wasm router
+    cp ${PORTABLE}/sdk_port.h ${PGROOT}/include/sdk_port.h
+
+    # specific implementation for flavour
+    cp ${PORTABLE}/sdk_port-${BUILD}/* ${PGROOT}/include/
 
     if ${WASI}
     then
@@ -109,8 +115,6 @@ else
         echo "WASI BUILD: turning off xml/xslt support"
         XML2=""
         UUID=""
-
-        cp ${PORTABLE}/sdk_port-wasi-* /tmp/pglite/include/
 
  # -lwasi-emulated-signal -D_WASI_EMULATED_SIGNAL -lwasi-emulated-getpid -D_WASI_EMULATED_GETPID
         WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread -lwasi-emulated-process-clocks"

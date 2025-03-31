@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "pglite/build: begin"
+echo "pglite/build: begin target BUILD_PATH=$BUILD_PATH"
 
 WORKSPACE=$(pwd)
 PGROOT=/tmp/pglite
@@ -19,8 +19,6 @@ then
 else
     BUILD=emscripten
 fi
-
-BUILD_PATH=build/postgres-${BUILD}
 
 LIBPGCORE=${BUILD_PATH}/libpgcore.a
 

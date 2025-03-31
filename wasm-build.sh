@@ -24,6 +24,7 @@ export WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
 export PGROOT=${PGROOT:-/tmp/pglite}
 export WEBROOT=${WEBROOT:-/tmp/web}
 
+export PG_BUILD=${BUILD:-/tmp/sdk/build}
 export PG_DIST=${DIST:-/tmp/sdk/dist}
 export PG_DIST_EXT="${PG_DIST}/extensions-emsdk"
 
@@ -36,6 +37,7 @@ export USE_ICU=${USE_ICU:-false}
 export PGUSER=${PGUSER:-postgres}
 
 [ -f /portable.opts ] && . /portable.opts
+[ -f /portable.dev ] && . /portable.dev
 
 # can override from cmdl line
 export WASI=${WASI:-false}
@@ -66,7 +68,7 @@ else
 fi
 
 export BUILD
-export BUILD_PATH=build/postgres-${BUILD}
+export BUILD_PATH=${PG_BUILD}/postgres-${BUILD}
 
 export PGDATA=${PGROOT}/base
 export PGPATCH=${WORKSPACE}/patches
@@ -281,7 +283,7 @@ else
 #define I_PGDEBUG
 #define WASM_USERNAME "$PGUSER"
 #define PGDEBUG 1
-#define PDEBUG(string) fputs(string, stdout)
+#define PDEBUG(string) fputs(string, stderr)
 #define JSDEBUG(string) {EM_ASM({ console.log(string); });}
 #define ADEBUG(string) { PDEBUG(string); JSDEBUG(string) }
 #endif
@@ -503,5 +505,30 @@ then
     * building + linking pglite-wasm (initdb/loop/transport/repl/backend)
 "
     ${WORKSPACE}/pglite-wasm/build.sh
+
+    if [ -d pglite ]
+    then
+        mkdir -p pglite/packages/pglite/release
+
+        for archive in ${PG_DIST_EXT}/*.tar
+        do
+            echo "    packing extension $archive"
+            gzip -f -9 $archive
+            mv $archive.gz pglite/packages/pglite/release/
+        done
+
+        mv pglite.* pglite/packages/pglite/release/
+        pushd pglite
+            export HOME=$PG_BUILD
+            [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
+            . $HOME/.bashrc
+            pnpm install -g npm vitest
+            pnpm run ts:build
+        popd
+        if $CI
+        then
+            ./runtests.sh
+        fi
+    fi
 fi
 

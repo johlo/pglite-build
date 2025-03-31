@@ -32,7 +32,7 @@ export HOME=/tmp
 export PROOT=${PORTABLE}/proot
 
 # git remove empty dirs
-mkdir -p ${WORKDIR}/dist
+mkdir -p ${WORKDIR}/postgresql-${PG_BRANCH}/dist ${WORKDIR}/postgresql-${PG_BRANCH}/build
 
 # --------------------------------------------------------
 # "docker emulation"
@@ -371,11 +371,13 @@ __start() {
 	COMMANDS+=" -b /proc/self/fd/1:/dev/stdout"
 	COMMANDS+=" -b /proc/self/fd/2:/dev/stderr"
     COMMANDS+=" -b ${WORKDIR}:/workspace"
-    COMMANDS+=" -b ${WORKDIR}/dist:/tmp/sdk/dist"
+    COMMANDS+=" -b ${WORKDIR}/postgresql-${PG_BRANCH}/build:/tmp/sdk/build"
+    COMMANDS+=" -b ${WORKDIR}/postgresql-${PG_BRANCH}/dist:/tmp/sdk/dist"
 	for f in stat version loadavg vmstat uptime
     do
 		[ -f "$CONTAINER_PATH/proc/.$f" ] && COMMANDS+=" -b $CONTAINER_PATH/proc/.$f:/proc/$f"
 	done
+# --change-id=uid:gid
 	COMMANDS+=" -r $CONTAINER_PATH -0 -w /root"
 	COMMANDS+=" -b $CONTAINER_PATH/root:/dev/shm"
 
@@ -407,7 +409,10 @@ __start() {
 }
 
 
-if git checkout ${PG_BRANCH}
+
+
+# git checkout ${PG_BRANCH}
+if cd ${WORKDIR}/postgresql-${PG_BRANCH}
 then
     if [ -f postgresql-${PG_BRANCH}.patched ]
     then
@@ -417,12 +422,13 @@ then
 
     Patching branch ${PG_BRANCH} with :
 
-$(find patches-${PG_BRANCH}/postgresql-*)
+$(find ${WORKDIR}/patches-${PG_BRANCH}/postgresql-*)
 
 
 
 "
-        # these don't exist in a released postgres.
+
+        # these initially don't exist in a released postgres.
         touch ./src/template/emscripten \
          ./src/include/port/emscripten.h \
          ./src/include/port/wasm_common.h \
@@ -434,9 +440,9 @@ $(find patches-${PG_BRANCH}/postgresql-*)
             postgresql-wasi \
             postgresql-pglite
         do
-            if [ -d patches-${PG_BRANCH}/$patchdir ]
+            if [ -d ${WORKDIR}/patches-${PG_BRANCH}/$patchdir ]
             then
-                for one in patches-${PG_BRANCH}/$patchdir/*.diff
+                for one in ${WORKDIR}/patches-${PG_BRANCH}/$patchdir/*.diff
                 do
                     if cat $one | patch -p1
                     then
@@ -446,7 +452,7 @@ $(find patches-${PG_BRANCH}/postgresql-*)
 
 Fatal: failed to apply patch : $one
 "
-                        exit 366
+                        exit 453
                     fi
                 done
             fi
@@ -454,9 +460,10 @@ Fatal: failed to apply patch : $one
         touch postgresql-${PG_BRANCH}.patched
     fi
 
+
     if [ -d $CONTAINER_PATH/${SDKROOT} ]
     then
-        echo using cached version
+        echo using cached sdk version from $CONTAINER_PATH/${SDKROOT}
     else
         SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
         echo "setting up sdk $SDK_URL"
@@ -468,6 +475,7 @@ Fatal: failed to apply patch : $one
             cat $tmpfile | tar x --use-compress-program=lz4
         popd
     fi
+
 
     # prevent erasing
     touch ${CONTAINER_PATH}${SDKROOT}/dev
