@@ -487,5 +487,5 @@ Fatal: failed to apply patch : $one
         alpineproot "apk add bash;/bin/bash --init-file /initrc"
     fi
 else
-    echo "Error need PG_BRANCH=$PG_BRANCH set to a valid WASM branch ( not pglite )"
+    echo "Error need PG_BRANCH=$PG_BRANCH set to a valid postgres-pglite WASM branch"
 fi

@@ -1,16 +1,16 @@
-if [ -f postgresql/postgresql-${PG_VERSION}.patched ]
+if [ -f postgresql-${PG_BRANCH}/postgresql-${PG_BRANCH}.patched ]
 then
-    echo version already selected and patch stage already done
+    echo version ${PG_BRANCH} already selected and patch stage already done
 else
     if [ -f configure ]
     then
         echo "building in tree ( docker or proot )"
-        ln -s $(pwd) postgresql-${PG_VERSION}
+        ln -s . postgresql-${PG_BRANCH}
     else
-        git clone --no-tags --depth 1 --single-branch --branch ${PG_VERSION} https://github.com/electric-sql/postgres-pglite postgresql-${PG_VERSION}
+        git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
     fi
 
-    if pushd postgresql-${PG_VERSION}
+    if pushd postgresql-${PG_BRANCH}
     then
             echo
         touch ./src/template/emscripten
@@ -39,7 +39,7 @@ Fatal: failed to apply patch : $one
                 done
             fi
         done
-        touch postgresql-${PG_VERSION}.patched
+        touch postgresql-${PG_BRANCH}.patched
         popd
     fi
 
@@ -48,11 +48,11 @@ Fatal: failed to apply patch : $one
     [ -f postgresql/configure ] && rm postgresql 2>/dev/null
 
     # do nothing if it is a submodule
-    [ -d postgresql ] || ln -s $(realpath postgresql-${PG_VERSION}) postgresql
+    [ -d postgresql ] || ln -s postgresql-${PG_BRANCH} postgresql
 
 fi
 
-export PGSRC=$(realpath postgresql)
+export PGSRC=$(realpath postgresql-${PG_BRANCH})
 
 echo "
 

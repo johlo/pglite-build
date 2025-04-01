@@ -31,13 +31,17 @@ else
     export PG_DIST_WEB="${WORKSPACE}/dist/web"
     export LOCAL=false
     # is it a pre-patched postgres-pglite release tree ?
-    [ -f postgresql-${PG_BRANCH}.patched ] && ln -s . postgresql-${PG_BRANCH}
-    [ -f postgresql-${PG_BRANCH}.patched ] && ln -s . postgresql-${PG_VERSION}
+    if [ -f configure ]
+    then
+        [ -f postgresql-${PG_BRANCH}.patched ] && ln -s . postgresql-pglite
+        [ -f postgresql-${PG_BRANCH}.patched ] && ln -s . postgresql-${PG_BRANCH}
+        [ -f postgresql-${PG_BRANCH}.patched ] && ln -s . postgresql-${PG_VERSION}
+    else
+        # unpatched upstream ( pglite-build case )
+        [ -f postgresql-${PG_BRANCH}/configure ] \
+         || git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
+    fi
 fi
-
-
-[ -f postgresql-${PG_BRANCH}/configure ] \
- || git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
 
 
 if [ -f pglite-wasm/build.sh ]
