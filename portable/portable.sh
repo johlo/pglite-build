@@ -4,6 +4,7 @@ export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
 export PORTABLE=$(realpath $(dirname $0))
 export ROOT=$(realpath $(pwd))
 export SDKROOT=${SDKROOT:-/tmp/sdk}
+export WASI=${WASI:-false}
 
 echo "
 ==================================================================================================
@@ -16,12 +17,12 @@ PG_BRANCH=$PG_BRANCH
 SDKROOT=$SDKROOT
 DEBUG=$DEBUG
 USE_ICU=$USE_ICU
+WASI=$WASI
 
 ==================================================================================================
 ==================================================================================================
 
 "
-
 
 
 

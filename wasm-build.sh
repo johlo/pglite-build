@@ -39,8 +39,11 @@ export PGUSER=${PGUSER:-postgres}
 [ -f /tmp/portable.opts ] && . /tmp/portable.opts
 [ -f /tmp/portable.dev ] && . /tmp/portable.dev
 
-# can override from cmdl line
+# can override from cmd line
 export WASI=${WASI:-false}
+export WASI_SDK=${WASI_SDK:-25.0}
+export PYBUILD=${PYBUILD:-3.13}
+
 
 
 if $WASI
@@ -73,12 +76,13 @@ export BUILD_PATH=${PG_BUILD}/postgres-${BUILD}
 export PGDATA=${PGROOT}/base
 export PGPATCH=${WORKSPACE}/patches
 
-chmod +x ${PORTABLE}/*.sh ${PORTABLE}/extra/*.sh
+chmod +x ${PORTABLE}/*.sh
+[ -d ${PORTABLE}/extra ] && ${PORTABLE}/extra/*.sh
 
+
+# this was set to false on 16.4 to skip some harmless exceptions without messing with core code.
 # exit on error
-EOE=false
-
-
+EOE=true
 
 
 # default to user writeable paths in /tmp/ .
@@ -126,11 +130,9 @@ System node/pnpm ( may interfer) :
 
 if ${WASI}
 then
-    echo "Wasi build (experimental)"
-    export WASI_SDK=25.0
-    export WASI_SDK_PREFIX=${SDKROOT}/wasisdk/wasi-sdk-${WASI_SDK}-x86_64-linux
-    #export WASI_SDK_PREFIX=${SDKROOT}/wasisdk/upstream
-    export WASI_SYSROOT=${WASI_SDK_PREFIX}/share/wasi-sysroot
+    pushd ${SDKROOT}
+     . wasisdk/wasisdk_env.sh
+    popd
 
     if [ -f ${WASI_SYSROOT}/extra ]
     then
@@ -146,20 +148,6 @@ then
             wget -q "${VMLABS}/libs%2Flibuuid%2F1.0.3%2B20230623-2993864/libuuid-1.0.3-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
         popd
         touch ${WASI_SYSROOT}/extra
-    fi
-
-
-    if false
-    then
-        . ${SDKROOT}/wasisdk/wasisdk_env.sh
-        env|grep WASI
-        export CC=${WASI_SDK_DIR}/bin/clang
-        export CPP=${WASI_SDK_DIR}/bin/clang-cpp
-        export CXX=${WASI_SDK_DIR}/bin/clang++
-        export CFLAGS="-D_WASI_EMULATED_SIGNAL"
-        export LDFLAGS="-lwasi-emulated-signal"
-    else
-        . ${SDKROOT}/wasm32-wasi-shell.sh
     fi
 
     # wasi does not use -sGLOBAL_BASE

@@ -13,10 +13,13 @@ export CI=${CI:-false}
 export WASI=${WASI:-false}
 if $WASI
 then
-    export BUILD_PATH=postgresql-${PG_BRANCH}/build/postgres-wasi
+    BUILD=wasi
 else
-    export BUILD_PATH=postgresql-${PG_BRANCH}/build/postgres-emscripten
+    BUILD=emscripten
 fi
+
+export BUILD_PATH=postgresql-${PG_BRANCH}/build/postgres-${BUILD}
+
 
 PG_DIST_EXT="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/extensions-emsdk"
 PG_DIST_PGLITE="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/pglite-sandbox"
@@ -24,7 +27,7 @@ PG_DIST_PGLITE="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/pglite-sandbox"
 # for local testing
 if [ -d /srv/www/html/pglite-web ]
 then
-    echo "local build"
+    echo "local ${BUILD} build"
     export PG_DIST_WEB="/srv/www/html/pglite-web"
     export LOCAL=true
 else
@@ -58,11 +61,12 @@ mkdir -p $CONTAINER_PATH/tmp
     cat > $CONTAINER_PATH/tmp/portable.opts <<END
 export DEBUG=${DEBUG}
 export USE_ICU=${USE_ICU}
-export PG_VERSION=$PG_VERSION
-export PG_BRANCH=$PG_BRANCH
-export GETZIC=$GETZIC
-export ZIC=$ZIC
-export CI=$CI
+export PG_VERSION=${PG_VERSION}
+export PG_BRANCH=${PG_BRANCH}
+export GETZIC=${GETZIC}
+export ZIC=${ZIC}
+export CI=${CI}
+export WASI=${WASI}
 END
 
 
@@ -85,25 +89,30 @@ ${WORKSPACE}/portable/portable.sh
 
 du -hs $BUILD_PATH $PG_DIST_EXT $PG_DIST_PGLITE
 
-if [ -f ${WORKSPACE}/${BUILD_PATH}/libpgcore.a ]
+if $WASI
 then
-    echo "found postgres core static libraries in ${WORKSPACE}/${BUILD_PATH}"
+    echo "TODO: wasi post link"
 else
-    echo "failed to build libpgcore static at ${WORKSPACE}/postgresql-${PG_BRANCH}/${BUILD_PATH}/libpgcore.a"
-    exit 85
-fi
 
-if $LOCAL
-then
-    cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
-    cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
-    mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/
-    echo "TODO: start test server"
-else
-    # gh pages
-    mkdir -p /tmp/web
-    cp -f pglite/packages/pglite/dist/*.tar.gz /tmp/web/
-    cp -f pglite/packages/pglite/dist/pglite.* /tmp/web/
-    mv -v pglite/packages/pglite/release/pglite.html /tmp/web/index.html
-fi
+    if [ -f ${WORKSPACE}/${BUILD_PATH}/libpgcore.a ]
+    then
+        echo "found postgres core static libraries in ${WORKSPACE}/${BUILD_PATH}"
+    else
+        echo "failed to build libpgcore static at ${WORKSPACE}/postgresql-${PG_BRANCH}/${BUILD_PATH}/libpgcore.a"
+        exit 85
+    fi
 
+    if $LOCAL
+    then
+        cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
+        cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
+        mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/
+        echo "TODO: start test server"
+    else
+        # gh pages
+        mkdir -p /tmp/web
+        cp -f pglite/packages/pglite/dist/*.tar.gz /tmp/web/
+        cp -f pglite/packages/pglite/dist/pglite.* /tmp/web/
+        mv -v pglite/packages/pglite/release/pglite.html /tmp/web/index.html
+    fi
+fi
