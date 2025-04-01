@@ -52,10 +52,10 @@ else
     cp -Rv pglite-${PG_BRANCH}/* pglite-wasm/
 fi
 
-mkdir -p $CONTAINER_PATH
+mkdir -p $CONTAINER_PATH/tmp
 
 #TODO: pglite has .buildconfig in postgres source dir instead.
-    cat > $CONTAINER_PATH/portable.opts <<END
+    cat > $CONTAINER_PATH/tmp/portable.opts <<END
 export DEBUG=${DEBUG}
 export USE_ICU=${USE_ICU}
 export PG_VERSION=$PG_VERSION

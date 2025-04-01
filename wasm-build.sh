@@ -36,8 +36,8 @@ export DEBUG=${DEBUG:-true}
 export USE_ICU=${USE_ICU:-false}
 export PGUSER=${PGUSER:-postgres}
 
-[ -f /portable.opts ] && . /portable.opts
-[ -f /portable.dev ] && . /portable.dev
+[ -f /tmp/portable.opts ] && . /tmp/portable.opts
+[ -f /tmp/portable.dev ] && . /tmp/portable.dev
 
 # can override from cmdl line
 export WASI=${WASI:-false}
@@ -501,34 +501,45 @@ then
 --preload-file placeholder@${PGROOT}/bin/initdb\
 "
     fi
+
     echo "
     * building + linking pglite-wasm (initdb/loop/transport/repl/backend)
 "
-    ${WORKSPACE}/pglite-wasm/build.sh
-
-    if [ -d pglite ]
+    if ${WORKSPACE}/pglite-wasm/build.sh
     then
-        mkdir -p pglite/packages/pglite/release
-
-        for archive in ${PG_DIST_EXT}/*.tar
-        do
-            echo "    packing extension $archive"
-            gzip -f -9 $archive
-            mv $archive.gz pglite/packages/pglite/release/
-        done
-
-        mv pglite.* pglite/packages/pglite/release/
-        pushd pglite
-            export HOME=$PG_BUILD
-            [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-            . $HOME/.bashrc
-            pnpm install -g npm vitest
-            pnpm run ts:build
-        popd
-        if $CI
+        if $WASI
         then
-            ./runtests.sh
+            echo "TODO: wasi pack/tests"
+        else
+            if [ -d pglite ]
+            then
+                mkdir -p pglite/packages/pglite/release
+
+                for archive in ${PG_DIST_EXT}/*.tar
+                do
+                    echo "    packing extension $archive"
+                    gzip -f -9 $archive
+                    mv $archive.gz pglite/packages/pglite/release/
+                done
+
+                mv pglite.* pglite/packages/pglite/release/
+                pushd pglite
+                    export HOME=$PG_BUILD
+                    [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
+                    . $HOME/.bashrc
+                    pnpm install -g npm vitest
+                    pnpm run ts:build
+                popd
+                if $CI
+                then
+                    ./runtests.sh || exit 534
+
+                fi
+            fi
         fi
+    else
+        echo "linking libpglite wasm failed"
+        exit 542
     fi
 fi
 

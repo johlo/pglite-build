@@ -8,7 +8,7 @@ if [ -d ${WORKSPACE}/src/fe_utils ]
 then
     PGSRC=${WORKSPACE}
 else
-    PGSRC=${WORKSPACE}/postgresql
+    PGSRC=${WORKSPACE}/postgresql-${PG_BRANCH}
 fi
 
 WASI=${WASI:-false}
@@ -25,10 +25,8 @@ LIBPGCORE=${BUILD_PATH}/libpgcore.a
 WEBROOT=${PGBUILD}/web
 
 PGINC=" -I${BUILD_PATH}/src/include \
--I${PGSRC}/src/include -I${PGSRC}/src \
--I${PGSRC}/src/interfaces/libpq -I${PGROOT}/include"
-
-#  -I${PGROOT}/include/postgresql/server"
+-I${PGROOT}/include -I${PGROOT}/include/postgresql/server \
+-I${PGSRC}/src/include -I${PGSRC}/src/interfaces/libpq -I${PGSRC}/src"
 
 
 if $WASI
@@ -36,7 +34,7 @@ then
 
     GLOBAL_BASE_B=$(python3 -c "print(${CMA_MB}*1024*1024)")
 echo "
-________________________________________________________
+_______________________ PG_BRANCH=${PG_BRANCH} _____________________
 
 wasi : $(which wasi-c) $(wasi-c -v)
 python : $(which python3) $(python3 -V)
@@ -76,7 +74,7 @@ ________________________________________________________
      -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
      -Wno-incompatible-pointer-types-discards-qualifiers
     then
-        if ${CC} -fpic -ferror-limit=1 ${CC_PGLITE}  ${PGINC} \
+        if ${CC} -fpic -ferror-limit=1 ${CC_PGLITE} ${PGINC} \
          -o ${BUILD_PATH}/sdk_port-wasi.o \
          -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
          -Wno-incompatible-pointer-types
@@ -139,7 +137,7 @@ LINKER="-sMAIN_MODULE=1 -sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}"
 
     echo "
 
-________________________________________________________
+_______________________ PG_BRANCH=${PG_BRANCH} _____________________
 
 emscripten : $(which emcc ) $(cat ${SDKROOT}/VERSION)
 python : $(which python3) $(python3 -V)
@@ -181,41 +179,37 @@ ________________________________________________________
         LINK_ICU=""
     fi
 
-#    ${CC} ${CC_PGLITE} -DPG_INITDB_MAIN \
-#     ${PGINC} \
-#     -o ${PGBUILD}/initdb.o -c ${PGSRC}/src/bin/initdb/initdb.c
-
-    ${CC} ${CC_PGLITE} ${PGINC} -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-wasm/pg_main.c \
+    if ${CC} ${CC_PGLITE} ${PGINC} -o ${BUILD_PATH}/pglite.o -c ${WORKSPACE}/pglite-${PG_BRANCH}/pg_main.c \
      -Wno-incompatible-pointer-types-discards-qualifiers
+    then
+        echo "  * linking node raw version of pglite ${PG_BRANCH}"
 
-    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite-rawfs.js -ferror-limit=1  \
-     -sFORCE_FILESYSTEM=1 $EMCC_NODE \
-         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
-         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${BUILD_PATH}/pglite.o \
-     $LINKER $LIBPGCORE \
-     $LINK_ICU \
-     -lnodefs.js -lidbfs.js -lxml2 -lz
+        COPTS="$LOPTS" ${CC} ${CC_PGLITE} ${PGINC} -o pglite-rawfs.js \
+         -sGLOBAL_BASE=${CMA_MB}MB -ferror-limit=1  \
+         -sFORCE_FILESYSTEM=1 $EMCC_NODE \
+             -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
+             -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
+         ${BUILD_PATH}/pglite.o \
+         $LINKER $LIBPGCORE \
+         $LINK_ICU \
+         -lnodefs.js -lidbfs.js -lxml2 -lz
 
-
-    # some content that does not need to ship into .data
-    for cleanup in snowball_create.sql psqlrc.sample
-    do
-        > ${PREFIX}/${cleanup}
-    done
-
-
-    COPTS="$LOPTS" ${CC} ${CC_PGLITE} -sGLOBAL_BASE=${CMA_MB}MB -o pglite.html -ferror-limit=1 --shell-file ${WORKSPACE}/pglite-wasm/repl.html \
-     $PGPRELOAD \
-     -sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sENVIRONMENT=node,web \
-     -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=Module \
-         -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
-         -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
-     ${PGINC} ${BUILD_PATH}/pglite.o \
-     $LINKER $LIBPGCORE \
-     $LINK_ICU \
-     -lnodefs.js -lidbfs.js -lxml2 -lz
-
+        echo "  * linking web version of pglite ( with .data initial filesystem, and html repl)"
+        COPTS="$LOPTS" ${CC} ${CC_PGLITE} -o pglite.html --shell-file ${WORKSPACE}/pglite-${PG_BRANCH}/repl.html \
+         $PGPRELOAD \
+         -sGLOBAL_BASE=${CMA_MB}MB -ferror-limit=1 \
+         -sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sENVIRONMENT=node,web \
+         -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=Module \
+             -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
+             -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
+         ${PGINC} ${BUILD_PATH}/pglite.o \
+         $LINKER $LIBPGCORE \
+         $LINK_ICU \
+         -lnodefs.js -lidbfs.js -lxml2 -lz
+    else
+        echo "compilation of libpglite ${PG_BRANCH} failed"
+        exit 214
+    fi
 fi
 
 du -hs pglite.*

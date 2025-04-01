@@ -171,7 +171,7 @@ volatile int sf_connected = 0;
 volatile bool sockfiles = false;
 volatile bool is_wire = true;
 extern char * cma_port;
-
+extern void pq_startmsgread(void);
 
 __attribute__((export_name("interactive_write")))
 void
@@ -288,17 +288,11 @@ ClientAuthInProgress = true;
         }
     }
 }
-#if FIXME
-extern void select_sinks();
-#else
-static void select_sinks() {
-}
-#endif
+
 
 void
 startup_pass(bool check) {
     // auth 'p'
-    select_sinks();
     if (check) {
         char *passwd = recv_password_packet(MyProcPort);
         PDEBUG("# 223: auth recv password: md5***");
@@ -349,7 +343,7 @@ interactive_one() {
 	StringInfoData input_message;
 	StringInfoData *inBuf;
     FILE *stream ;
-    FILE *fp;
+    FILE *fp = NULL;
     int packetlen;
 
     bool had_notification = notifyInterruptPending;
@@ -438,7 +432,7 @@ interactive_one() {
     } else {
         fp = fopen(PGS_IN, "r");
 
-        // read as a socket.
+        // read file in socket buffer for SocketBackend to consumme.
         if (fp) {
             fseek(fp, 0L, SEEK_END);
             packetlen = ftell(fp);
@@ -544,6 +538,7 @@ incoming:
             /* wire on a socket or cma may auth, not handled by pg_proto block */
             if (peek==0) {
                 PDEBUG("# 540: handshake/auth");
+                if (!fp) pq_startmsgread();
                 startup_auth();
                 PDEBUG("# 542: auth request");
                 break;
@@ -551,6 +546,7 @@ incoming:
 
             if (peek==112) {
                 PDEBUG("# 547: password");
+                if (!fp) pq_startmsgread();
                 startup_pass(true);
                 break;
             }
