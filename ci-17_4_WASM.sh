@@ -95,11 +95,15 @@ fi
 
 if $LOCAL
 then
-    for archive in ${PG_DIST_EXT}/*.tar
-    do
-        echo "    packing extension $archive"
-        gzip -f -9 $archive
-    done
+    cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
+    cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
+    mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/
     echo "TODO: start test server"
+else
+    # gh pages
+    mkdir -p /tmp/web
+    cp -f pglite/packages/pglite/dist/*.tar.gz /tmp/web/
+    cp -f pglite/packages/pglite/dist/pglite.* /tmp/web/
+    mv -v pglite/packages/pglite/release/pglite.html /tmp/web/index.html
 fi
 
