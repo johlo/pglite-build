@@ -468,11 +468,13 @@ Fatal: failed to apply patch : $one
         SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
         echo "setting up sdk $SDK_URL"
         pushd $CONTAINER_PATH
-            mkdir -p /tmp/sdk
-            tmpfile=/tmp/sdk/python3.13-wasm-sdk-alpine-3.21.tar.lz4
-            [ -f /opt/python3.13-wasm-sdk-alpine-3.21.tar.lz4 ] && cp -f /opt/python3.13-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
-            [ -f /tmp/sdk/python3.13-wasm-sdk-alpine-3.21.tar.lz4 ] || wget -q $SDK_URL -O$tmpfile
+            mkdir -p tmp
+            tmpfile=tmp/python3.13-wasm-sdk-alpine-3.21.tar.lz4
+            # local cache
+            [ -f $PORTABLE/python3.13-wasm-sdk-alpine-3.21.tar.lz4 ] && cp -f $PORTABLE/python3.13-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
+            [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
+            tar xf $PORTABLE/wasi-sdk-25.tar.xz
         popd
     fi
 

@@ -403,7 +403,7 @@ then
  ]"
     fi
 
-    for extdir in postgresql/contrib/*
+    for extdir in postgresql-${PG_BRANCH}/contrib/*
     do
         if [ -f ${PGROOT}/dumps/dump.vector ]
         then

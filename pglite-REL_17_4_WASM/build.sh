@@ -1,5 +1,14 @@
 #!/bin/bash
-echo "pglite/build: begin target BUILD_PATH=$BUILD_PATH"
+export WASI=${WASI:-false}
+
+if ${WASI}
+then
+    BUILD=wasi
+else
+    BUILD=emscripten
+fi
+
+echo "pglite/build-$BUILD: begin target BUILD_PATH=$BUILD_PATH"
 
 WORKSPACE=$(pwd)
 PGROOT=/tmp/pglite
@@ -11,15 +20,6 @@ else
     PGSRC=${WORKSPACE}/postgresql-${PG_BRANCH}
 fi
 
-WASI=${WASI:-false}
-
-if ${WASI:-false}
-then
-    BUILD=wasi
-else
-    BUILD=emscripten
-fi
-
 LIBPGCORE=${BUILD_PATH}/libpgcore.a
 
 WEBROOT=${PGBUILD}/web
@@ -29,10 +29,13 @@ PGINC=" -I${BUILD_PATH}/src/include \
 -I${PGSRC}/src/include -I${PGSRC}/src/interfaces/libpq -I${PGSRC}/src"
 
 
+GLOBAL_BASE_B=$(python3 -c "print(${CMA_MB}*1024*1024)")
+
+
 if $WASI
 then
 
-    GLOBAL_BASE_B=$(python3 -c "print(${CMA_MB}*1024*1024)")
+
 echo "
 _______________________ PG_BRANCH=${PG_BRANCH} _____________________
 
@@ -52,6 +55,7 @@ Folders :
     CPOPTS : $COPTS
     DEBUG  : $DEBUG
         LOPTS  : $LOPTS
+
      CMA_MB : $CMA_MB
 GLOBAL_BASE : $GLOBAL_BASE_B
 
@@ -79,23 +83,27 @@ ________________________________________________________
          -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
          -Wno-incompatible-pointer-types
         then
-
-            # some content that does not need to ship into .data
-            for cleanup in snowball_create.sql psqlrc.sample
-            do
-                > ${PREFIX}/${cleanup}
-            done
-
             COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.wasi \
              -nostartfiles ${PGINC} ${BUILD_PATH}/pglite.o \
              ${BUILD_PATH}/sdk_port-wasi.o \
              $LINKER $LIBPGCORE \
              $LINK_ICU \
-             build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
-             build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
+             /tmp/sdk/build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
+             /tmp/sdk/build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
              -lxml2 -lz
-            reset
+        else
+            echo "compilation of libpglite ${BUILD} support failed"
         fi
+
+        if [ -f pglite.wasi ]
+        then
+            du -hs pglite.*
+        else
+            echo "linking libpglite wasi failed in $(pwd)"
+        fi
+    else
+        echo "compilation of libpglite ${PG_BRANCH} failed"
+        exit 106
     fi
 
 else
@@ -152,10 +160,12 @@ Folders :
      build : $BUILD_PATH
     target : $WEBROOT
 
-    CPOPTS : $COPTS
-    DEBUG  : $DEBUG
-        LOPTS  : $LOPTS
-    CMA_MB : $CMA_MB
+     CPOPTS : $COPTS
+     DEBUG  : $DEBUG
+         LOPTS  : $LOPTS
+
+     CMA_MB : $CMA_MB
+GLOBAL_BASE : $GLOBAL_BASE_B
 
  CC_PGLITE : $CC_PGLITE
 
@@ -206,13 +216,14 @@ ________________________________________________________
          $LINKER $LIBPGCORE \
          $LINK_ICU \
          -lnodefs.js -lidbfs.js -lxml2 -lz
+
+        du -hs pglite.*
     else
         echo "compilation of libpglite ${PG_BRANCH} failed"
-        exit 214
+        exit 220
     fi
 fi
 
-du -hs pglite.*
 
-echo "pglite/build: end"
+echo "pglite/build($BUILD): end"
 
