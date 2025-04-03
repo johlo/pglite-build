@@ -45,7 +45,8 @@ jobs:
 
       - name: Build libpglite native with portable-sdk
         run: |
-       	  echo WIP $(arch)
+       	  echo "WIP arch:"
+          bash -c arch
 
       - name: Upload sdk to Github Releases
         if: github.event_name == 'release'
