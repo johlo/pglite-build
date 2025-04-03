@@ -32,8 +32,8 @@ export CONTAINER_PATH=${CONTAINER_PATH:-/tmp/fs}
 export HOME=/tmp
 export PROOT=${PORTABLE}/proot
 
-# git remove empty dirs
-mkdir -p ${WORKDIR}/postgresql-${PG_BRANCH}/dist ${WORKDIR}/postgresql-${PG_BRANCH}/build
+# git would remove empty dirs
+mkdir -p ${WORKDIR}/dist-${PG_BRANCH}/dist ${WORKDIR}/build-${PG_BRANCH}
 
 # --------------------------------------------------------
 # "docker emulation"
@@ -372,8 +372,8 @@ __start() {
 	COMMANDS+=" -b /proc/self/fd/1:/dev/stdout"
 	COMMANDS+=" -b /proc/self/fd/2:/dev/stderr"
     COMMANDS+=" -b ${WORKDIR}:/workspace"
-    COMMANDS+=" -b ${WORKDIR}/postgresql-${PG_BRANCH}/build:/tmp/sdk/build"
-    COMMANDS+=" -b ${WORKDIR}/postgresql-${PG_BRANCH}/dist:/tmp/sdk/dist"
+    COMMANDS+=" -b ${WORKDIR}/build-${PG_BRANCH}:/tmp/sdk/build"
+    COMMANDS+=" -b ${WORKDIR}/dist-${PG_BRANCH}:/tmp/sdk/dist"
 	for f in stat version loadavg vmstat uptime
     do
 		[ -f "$CONTAINER_PATH/proc/.$f" ] && COMMANDS+=" -b $CONTAINER_PATH/proc/.$f:/proc/$f"

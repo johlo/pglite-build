@@ -20,11 +20,11 @@ else
     BUILD=emscripten
 fi
 
-export BUILD_PATH=postgresql-${PG_BRANCH}/build/postgres-${BUILD}
+export BUILD_PATH=${WORKSPACE}/build-${PG_BRANCH}/${BUILD}
+export DIST_PATH=${WORKSPACE}/dist-${PG_BRANCH}
 
-
-PG_DIST_EXT="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/extensions-emsdk"
-PG_DIST_PGLITE="${WORKSPACE}/postgresql-${PG_BRANCH}/dist/pglite-sandbox"
+PG_DIST_EXT="${DIST_PATH}/extensions-emsdk"
+PG_DIST_PGLITE="${DIST_PATH}/pglite-sandbox"
 
 # for local testing
 if [ -d /srv/www/html/pglite-web ]
@@ -33,7 +33,7 @@ then
     export PG_DIST_WEB="/srv/www/html/pglite-web"
     export LOCAL=true
 else
-    export PG_DIST_WEB="${WORKSPACE}/dist/web"
+    export PG_DIST_WEB="${DIST_PATH}/web"
     export LOCAL=false
     # is it a pre-patched postgres-pglite release tree ?
     if [ -f configure ]
@@ -89,18 +89,19 @@ fi
 ${WORKSPACE}/portable/portable.sh
 
 
-du -hs $BUILD_PATH $PG_DIST_EXT $PG_DIST_PGLITE
+du -hs $BUILD_PATH/* $DIST_PATH/*
+
 
 if $WASI
 then
     echo "TODO: wasi post link"
 else
 
-    if [ -f ${WORKSPACE}/${BUILD_PATH}/libpgcore.a ]
+    if [ -f ${BUILD_PATH}/libpgcore.a ]
     then
-        echo "found postgres core static libraries in ${WORKSPACE}/${BUILD_PATH}"
+        echo "found postgres core static libraries in ${BUILD_PATH}"
     else
-        echo "failed to build libpgcore static at ${WORKSPACE}/postgresql-${PG_BRANCH}/${BUILD_PATH}/libpgcore.a"
+        echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"
         exit 85
     fi
 
@@ -113,6 +114,7 @@ else
     fi
 
     mkdir -p $PG_DIST_WEB
+    touch $PG_DIST_WEB/.nojekyll
     cp $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
