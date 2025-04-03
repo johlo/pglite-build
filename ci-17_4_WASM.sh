@@ -1,7 +1,8 @@
 #!/bin/bash
-export WORKSPACE=$(pwd)
+export PGL_BRANCH=pmp-p/pglite-build17
 export PG_VERSION=${PG_VERSION:-17.4}
 export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
+
 export CONTAINER_PATH=${CONTAINER_PATH:-/tmp/fs}
 export DEBUG=${DEBUG:-false}
 export USE_ICU=${USE_ICU:-false}
@@ -9,6 +10,7 @@ export GETZIC=${GETZIC:-false}
 export ZIC=${ZIC:-/usr/sbin/zic}
 export CI=${CI:-false}
 
+export WORKSPACE=$(pwd)
 
 export WASI=${WASI:-false}
 if $WASI
@@ -76,10 +78,10 @@ then
 else
     echo "
 
-    *   getting pglite
+    *   getting pglite branch $PGL_BRANCH
 
 "
-    git clone --no-tags --depth 1 --single-branch --branch pmp-p/pglite-build17 https://github.com/electric-sql/pglite pglite
+    git clone --no-tags --depth 1 --single-branch --branch $PGL_BRANCH https://github.com/electric-sql/pglite pglite
 fi
 
 
@@ -104,15 +106,16 @@ else
 
     if $LOCAL
     then
-        cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
-        cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
-        mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/
-        echo "TODO: start test server"
+        echo "TODO: start a test server for $PG_DIST_WEB"
     else
-        # gh pages
-        mkdir -p /tmp/web
-        cp -f pglite/packages/pglite/dist/*.tar.gz /tmp/web/
-        cp -f pglite/packages/pglite/dist/pglite.* /tmp/web/
-        mv -v pglite/packages/pglite/release/pglite.html /tmp/web/index.html
+        # gh pages publich
+        PG_DIST_WEB=/tmp/web
     fi
+
+    mkdir -p $PG_DIST_WEB
+    cp $CONTAINER_PATH/tmp/pglite/bin/pglite.wasi /tmp/web/
+    cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
+    cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
+    mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
+
 fi
