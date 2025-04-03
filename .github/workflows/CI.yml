@@ -32,13 +32,13 @@ jobs:
           fetch-depth: 1
           submodules: true
 
-      - name: Build postgresql emscripten node+web via portable-sdk
-        run: |
-          bash ./ci-17_4_WASM.sh
-
       - name: Build postgresql wasi portable-sdk
         run: |
           WASI=true bash ./ci-17_4_WASM.sh
+
+      - name: Build postgresql emscripten node+web via portable-sdk
+        run: |
+          bash ./ci-17_4_WASM.sh
 
 #      - name: Build libpglite native with portable-sdk
 #        run: |
