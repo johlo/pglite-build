@@ -43,10 +43,10 @@ jobs:
         run: |
           WASI=true bash ./ci-17_4_WASM.sh
 
-      - name: Build libpglite native with portable-sdk
-        run: |
-       	  echo "WIP arch:"
-          bash -c arch
+#      - name: Build libpglite native with portable-sdk
+#        run: |
+#       	  echo "WIP arch:"
+#          bash -c arch
 
       - name: Upload sdk to Github Releases
         if: github.event_name == 'release'
