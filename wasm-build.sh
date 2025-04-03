@@ -516,6 +516,7 @@ then
                     [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
                     . $HOME/.bashrc
                     pnpm install -g npm vitest
+                    pnpm install
                     pnpm run ts:build
                 popd
                 if $CI

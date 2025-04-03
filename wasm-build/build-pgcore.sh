@@ -59,7 +59,7 @@ echo "
 Building $ARCHIVE (patched) from $PGSRC WASI=$WASI
 
 
-build-pgcore:begin
+build-pgcore: begin($BUILD)
 ___________________________________________________
 
 CC_PGLITE=$CC_PGLITE
@@ -82,16 +82,12 @@ else
     echo "{}" > package.json
 
 
-    if $CI
+    if [ -f Makefile ]
     then
-        echo "CI : using build cache"
-    else
-        if [ -f Makefile ]
-        then
-            echo "Cleaning up previous build ..."
-            make distclean 2>&1 > /dev/null
-        fi
+        echo "Cleaning up previous build ..."
+        make distclean 2>&1 > /dev/null
     fi
+
 
 # TODO: --with-libxml    xml2 >= 2.6.23
 # TODO: --with-libxslt   add to sdk
@@ -111,7 +107,7 @@ else
 
     if ${WASI}
     then
-        BUILD=wasi
+        #BUILD=wasi
         echo "WASI BUILD: turning off xml/xslt support"
         XML2=""
         UUID=""
@@ -122,7 +118,7 @@ else
         export MAIN_MODULE=""
 
     else
-        BUILD=emscripten
+        #BUILD=emscripten
 
         # --with-libxml does not fit with --without-zlib
         if $CI
@@ -432,7 +428,7 @@ END
 
 fi
 
-echo "build-pgcore: end
+echo "build-pgcore: end($BUILD)
 
 
 

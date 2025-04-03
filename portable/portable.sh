@@ -476,6 +476,19 @@ Fatal: failed to apply patch : $one
             [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
             tar xf $PORTABLE/wasi-sdk-25.tar.xz
+            if [ -f $CONTAINER_PATH/usr/bin/python3 ]
+            then
+                echo "system python found"
+            else
+                if [ -L $CONTAINER_PATH/usr/bin/python3 ]
+                then
+                    echo "linked python for build found"
+                else
+                    echo "Setting python for build as system python3"
+                    mkdir -p $CONTAINER_PATH/usr/bin
+                    ln -s $SDKROOT/devices/$(arch)/usr/bin/python3 $CONTAINER_PATH/usr/bin/python3
+                fi
+            fi
         popd
     fi
 
