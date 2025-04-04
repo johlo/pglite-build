@@ -71,7 +71,7 @@ else
 fi
 
 export BUILD
-export BUILD_PATH=${PG_BUILD}/postgres-${BUILD}
+export BUILD_PATH=${PG_BUILD}/${BUILD}
 
 export PGDATA=${PGROOT}/base
 export PGPATCH=${WORKSPACE}/patches

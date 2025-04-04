@@ -89,7 +89,7 @@ fi
 ${WORKSPACE}/portable/portable.sh
 
 
-du -hs $BUILD_PATH/* $DIST_PATH/*
+du -hs $BUILD_PATH/../* $DIST_PATH/*
 
 
 if $WASI

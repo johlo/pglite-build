@@ -88,8 +88,8 @@ ________________________________________________________
              ${BUILD_PATH}/sdk_port-wasi.o \
              $LINKER $LIBPGCORE \
              $LINK_ICU \
-             /tmp/sdk/build/postgres-wasi/src/backend/snowball/libdict_snowball.a \
-             /tmp/sdk/build/postgres-wasi/src/pl/plpgsql/src/libplpgsql.a \
+             ${PG_BUILD}/${BUILD}/src/backend/snowball/libdict_snowball.a \
+             ${PG_BUILD}/${BUILD}/src/pl/plpgsql/src/libplpgsql.a \
              -lxml2 -lz
         else
             echo "compilation of libpglite ${BUILD} support failed"
@@ -99,10 +99,10 @@ ________________________________________________________
         then
             du -hs pglite.*
         else
-            echo "linking libpglite wasi failed in $(pwd)"
+            echo "linking libpglite ${BUILD} failed in $(pwd)"
         fi
     else
-        echo "compilation of libpglite ${PG_BRANCH} failed"
+        echo "${BUILD} compilation of libpglite ${PG_BRANCH} failed"
         exit 106
     fi
 
