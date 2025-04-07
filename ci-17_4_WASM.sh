@@ -91,9 +91,20 @@ ${WORKSPACE}/portable/portable.sh
 
 du -hs $BUILD_PATH/../* $DIST_PATH/*
 
+if $LOCAL
+then
+    echo "TODO: start a test server for $PG_DIST_WEB"
+else
+    # gh pages publish
+    PG_DIST_WEB=/tmp/web
+    mkdir -p $PG_DIST_WEB
+    touch $PG_DIST_WEB/.nojekyll
+fi
+
 
 if $WASI
 then
+    cp -v $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
     echo "TODO: wasi post link"
 else
 
@@ -105,17 +116,7 @@ else
         exit 85
     fi
 
-    if $LOCAL
-    then
-        echo "TODO: start a test server for $PG_DIST_WEB"
-    else
-        # gh pages publish
-        PG_DIST_WEB=/tmp/web
-    fi
-
-    mkdir -p $PG_DIST_WEB
-    touch $PG_DIST_WEB/.nojekyll
-    cp $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
+    [ -f $CONTAINER_PATH/pglite.wasi ] &&  cp -vf $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
     mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
