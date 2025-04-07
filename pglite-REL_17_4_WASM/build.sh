@@ -6,6 +6,7 @@ then
     BUILD=wasi
 else
     BUILD=emscripten
+    WEBROOT=${PG_DIST}/web
 fi
 
 echo "pglite/build-$BUILD: begin target BUILD_PATH=$BUILD_PATH"
@@ -22,7 +23,7 @@ fi
 
 LIBPGCORE=${BUILD_PATH}/libpgcore.a
 
-WEBROOT=${PGBUILD}/web
+
 
 PGINC=" -I${BUILD_PATH}/src/include \
 -I${PGROOT}/include -I${PGROOT}/include/postgresql/server \
@@ -83,7 +84,7 @@ ________________________________________________________
          -c wasm-build/sdk_port-wasi/sdk_port-wasi-dlfcn.c \
          -Wno-incompatible-pointer-types
         then
-            COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o pglite.wasi \
+            COPTS="$LOPTS" ${CC} ${CC_PGLITE} -ferror-limit=1 -Wl,--global-base=${GLOBAL_BASE_B} -o ${PG_DIST}/pglite.wasi \
              -nostartfiles ${PGINC} ${BUILD_PATH}/pglite.o \
              ${BUILD_PATH}/sdk_port-wasi.o \
              $LINKER $LIBPGCORE \
@@ -95,9 +96,12 @@ ________________________________________________________
             echo "compilation of libpglite ${BUILD} support failed"
         fi
 
-        if [ -f pglite.wasi ]
+        if [ -f ${PG_DIST}/pglite.wasi ]
         then
-            du -hs pglite.*
+            echo "building minimal wasi FS"
+            cp ${PG_DIST}/pglite.wasi ${PGROOT}/bin/
+            tar -cvJ --files-from=${WORKSPACE}/wasmfs.txt > ${PG_DIST}/pglite-wasi.tar.xz
+            rm ${PGROOT}/bin/pglite.wasi
         else
             echo "linking libpglite ${BUILD} failed in $(pwd)"
         fi
@@ -194,7 +198,7 @@ ________________________________________________________
     then
         echo "  * linking node raw version of pglite ${PG_BRANCH}"
 
-        COPTS="$LOPTS" ${CC} ${CC_PGLITE} ${PGINC} -o pglite-rawfs.js \
+        COPTS="$LOPTS" ${CC} ${CC_PGLITE} ${PGINC} -o ${PGL_DIST_JS}/pglite-js.js \
          -sGLOBAL_BASE=${CMA_MB}MB -ferror-limit=1  \
          -sFORCE_FILESYSTEM=1 $EMCC_NODE \
              -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
@@ -205,7 +209,7 @@ ________________________________________________________
          -lnodefs.js -lidbfs.js -lxml2 -lz
 
         echo "  * linking web version of pglite ( with .data initial filesystem, and html repl)"
-        COPTS="$LOPTS" ${CC} ${CC_PGLITE} -o pglite.html --shell-file ${WORKSPACE}/pglite-${PG_BRANCH}/repl.html \
+        COPTS="$LOPTS" ${CC} ${CC_PGLITE} -o ${PGL_DIST_WEB}/pglite.html --shell-file ${WORKSPACE}/pglite-${PG_BRANCH}/repl.html \
          $PGPRELOAD \
          -sGLOBAL_BASE=${CMA_MB}MB -ferror-limit=1 \
          -sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sENVIRONMENT=node,web \
@@ -217,13 +221,14 @@ ________________________________________________________
          $LINK_ICU \
          -lnodefs.js -lidbfs.js -lxml2 -lz
 
-        du -hs pglite.*
     else
         echo "compilation of libpglite ${PG_BRANCH} failed"
         exit 220
     fi
 fi
 
+
+du -hs ${PG_DIST}/*
 
 echo "pglite/build($BUILD): end"
 

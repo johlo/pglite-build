@@ -23,8 +23,6 @@ fi
 export BUILD_PATH=${WORKSPACE}/build-${PG_BRANCH}/${BUILD}
 export DIST_PATH=${WORKSPACE}/dist-${PG_BRANCH}
 
-PG_DIST_EXT="${DIST_PATH}/extensions-emsdk"
-PG_DIST_PGLITE="${DIST_PATH}/pglite-sandbox"
 
 # for local testing
 if [ -d /srv/www/html/pglite-web ]
@@ -89,8 +87,6 @@ fi
 ${WORKSPACE}/portable/portable.sh
 
 
-du -hs $BUILD_PATH/../* $DIST_PATH/*
-
 if $LOCAL
 then
     echo "TODO: start a test server for $PG_DIST_WEB"
@@ -101,10 +97,12 @@ else
     touch $PG_DIST_WEB/.nojekyll
 fi
 
+[ -f $DIST_PATH/pglite.wasi ] &&  cp -vf $DIST_PATH/pglite.wasi $PG_DIST_WEB/
+[ -f $DIST_PATH/pglite-wasi.tar.xz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.xz $PG_DIST_WEB/
+
 
 if $WASI
 then
-    cp -v $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
     echo "TODO: wasi post link"
 else
 
@@ -116,9 +114,7 @@ else
         exit 85
     fi
 
-    [ -f $CONTAINER_PATH/pglite.wasi ] &&  cp -vf $CONTAINER_PATH/pglite.wasi $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
     cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
     mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
-
 fi

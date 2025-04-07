@@ -7,6 +7,7 @@ export SDKROOT=${SDKROOT:-/tmp/sdk}
 export WASI=${WASI:-false}
 
 echo "
+
 ==================================================================================================
 ==================================================================================================
 
@@ -33,7 +34,7 @@ export HOME=/tmp
 export PROOT=${PORTABLE}/proot
 
 # git would remove empty dirs
-mkdir -p ${WORKDIR}/dist-${PG_BRANCH}/dist ${WORKDIR}/build-${PG_BRANCH}
+mkdir -p ${WORKDIR}/dist-${PG_BRANCH} ${WORKDIR}/build-${PG_BRANCH}
 
 # --------------------------------------------------------
 # "docker emulation"

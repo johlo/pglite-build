@@ -28,8 +28,8 @@ export PG_BUILD=${BUILD:-/tmp/sdk/build}
 export PG_DIST=${DIST:-/tmp/sdk/dist}
 export PG_DIST_EXT="${PG_DIST}/extensions-emsdk"
 
-
-export PGL_DIST_WEB="${PG_DIST}/pglite-sandbox"
+export PGL_DIST_JS="${PG_DIST}/pglite-js"
+export PGL_DIST_WEB="${PG_DIST}/pglite-web"
 
 export DEBUG=${DEBUG:-true}
 
@@ -86,7 +86,7 @@ EOE=true
 
 
 # default to user writeable paths in /tmp/ .
-if mkdir -p ${PGROOT} ${PG_DIST} ${PG_DIST_EXT} ${PGL_DIST_WEB}
+if mkdir -p ${PGROOT} ${PG_DIST} ${PG_DIST_EXT} ${PGL_DIST_JS} ${PGL_DIST_WEB}
 then
     echo "checking for valid prefix ${PGROOT} ${PG_DIST}"
 else
