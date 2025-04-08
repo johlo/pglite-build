@@ -52,6 +52,9 @@ Folders :
     source : $PGSRC
      build : $BUILD_PATH
     target : $PGROOT
+  retarget : ${PGL_DIST_C}
+    native : ${PGL_DIST_NATIVE}
+
 
     CPOPTS : $COPTS
     DEBUG  : $DEBUG
@@ -100,8 +103,28 @@ ________________________________________________________
         then
             echo "building minimal wasi FS"
             cp ${PG_DIST}/pglite.wasi ${PGROOT}/bin/
+            touch ${PGROOT}/bin/initdb ${PGROOT}/bin/postgres
             tar -cvJ --files-from=${WORKSPACE}/wasmfs.txt > ${PG_DIST}/pglite-wasi.tar.xz
-            rm ${PGROOT}/bin/pglite.wasi
+            cat > ${PGL_BUILD_NATIVE}/pglite-native.sh <<END
+mkdir -p ${PGL_BUILD_NATIVE} ${PGL_DIST_NATIVE}
+pushd ${PGL_BUILD_NATIVE}
+export WORKSPACE=${WORKSPACE}
+export WASM2C=pglite
+export PYBUILD=3.13
+export PGROOT=$PGROOT
+export PGL_DIST_C=${PGL_DIST_C}
+export PGL_BUILD_NATIVE=${PGL_BUILD_NATIVE}
+export PGL_DIST_NATIVE=${PGL_DIST_NATIVE}
+export PATH=\$PATH:$(dirname $HPY)
+export CC=gcc
+export PYMAJOR=$PYMAJOR
+export PYMINOR=$PYMINOR
+time ${WORKSPACE}/pglite-wasm/native.sh
+mv -v *.so ${PGL_DIST_NATIVE}/
+popd
+END
+            chmod +x ${BUILD_PATH}/pglite-native.sh
+
         else
             echo "linking libpglite ${BUILD} failed in $(pwd)"
         fi

@@ -25,10 +25,14 @@ export PGROOT=${PGROOT:-/tmp/pglite}
 export WEBROOT=${WEBROOT:-/tmp/web}
 
 export PG_BUILD=${BUILD:-/tmp/sdk/build}
+export PGL_BUILD_NATIVE="${PG_BUILD}/pglite-native"
+
 export PG_DIST=${DIST:-/tmp/sdk/dist}
 export PG_DIST_EXT="${PG_DIST}/extensions-emsdk"
 
 export PGL_DIST_JS="${PG_DIST}/pglite-js"
+
+export PGL_DIST_NATIVE="${PG_DIST}/pglite-native"
 export PGL_DIST_WEB="${PG_DIST}/pglite-web"
 
 export DEBUG=${DEBUG:-true}
@@ -510,7 +514,7 @@ then
                     mv $archive.gz pglite/packages/pglite/release/
                 done
 
-                mv pglite.* pglite/packages/pglite/release/
+                cp ${PGL_DIST_WEB}/pglite.* pglite/packages/pglite/release/
                 pushd pglite
                     export HOME=$PG_BUILD
                     [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
