@@ -510,7 +510,7 @@ then
                 for archive in ${PG_DIST_EXT}/*.tar
                 do
                     echo "    packing extension $archive"
-                    gzip -f -9 $archive
+                    gzip -k -9 $archive
                     mv $archive.gz pglite/packages/pglite/release/
                 done
 
@@ -523,16 +523,17 @@ then
                     pnpm install
                     pnpm run ts:build
                 popd
+
                 if $CI
                 then
-                    ./runtests.sh || exit 534
-
+                    ./runtests.sh || exit 528
                 fi
+
             fi
         fi
     else
         echo "linking libpglite wasm failed"
-        exit 542
+        exit 536
     fi
 fi
 

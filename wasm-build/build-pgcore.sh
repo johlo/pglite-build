@@ -34,7 +34,7 @@ else
 
 Fatal: failed to apply patch : $one
 "
-                        exit 30
+                        exit 37
                     fi
                 done
             fi
@@ -99,16 +99,15 @@ else
     # common to all wasm flavour
     cp ${PGSRC}/src/include/port/wasm_common.h ${PGROOT}/include/wasm_common.h
 
-    # wasm router
+    # wasm os implementation router
     cp ${PORTABLE}/sdk_port.h ${PGROOT}/include/sdk_port.h
 
-    # specific implementation for flavour
-    cp ${PORTABLE}/sdk_port-${BUILD}/* ${PGROOT}/include/
+    # specific implementation for wasm os flavour
+    [ -d  ${PORTABLE}/sdk_port-${BUILD} ] && cp ${PORTABLE}/sdk_port-${BUILD}/* ${PGROOT}/include/
 
     if ${WASI}
     then
-        #BUILD=wasi
-        echo "WASI BUILD: turning off xml/xslt support"
+         echo "WASI BUILD: turning off xml/xslt support"
         XML2=""
         UUID=""
 
@@ -118,8 +117,6 @@ else
         export MAIN_MODULE=""
 
     else
-        #BUILD=emscripten
-
         # --with-libxml does not fit with --without-zlib
         if $CI
         then
@@ -218,7 +215,7 @@ END
         echo configure ok
     else
         echo configure failed
-        exit 194
+        exit 218
     fi
 
     echo "
@@ -227,19 +224,17 @@ END
 
     =============================================================
 
-    building $BUILD wasm MVP:$MVP Debug=${PGDEBUG} with :
+    building $BUILD wasm MVP:$MVP Debug=${DEBUG} with :
 
     opts : $@
 
     COPTS=$COPTS
     LOPTS=$LOPTS
 
-
     PYDK_CFLAGS=$PYDK_CFLAGS
 
-    EMCC_CFLAGS=$EMCC_NODE
-
     CFLAGS=$WASM_CFLAGS
+        js build flags (emsdk only) : $EMCC_NODE
 
     LDFLAGS=$WASM_LDFLAGS
 
@@ -260,7 +255,7 @@ END
         echo "dyld server patch ok"
     else
         echo "missing server dyld patch"
-        exit 236
+        exit 260
     fi
 
     # --disable-shared not supported so be able to use a fake linker
@@ -330,6 +325,7 @@ export PATH=$PGROOT/bin:\$PATH
 # ${PGROOT}/pgopts.sh
 
 END
+
     cat ${PGROOT}/pgopts.sh >> pg-make.sh
 
     cat >> pg-make.sh <<END
@@ -359,7 +355,7 @@ END
 
     chmod +x pg-make.sh
 
-    if env -i ./pg-make.sh install
+    if env -i ./pg-make.sh install 2>&1 > /tmp/install.log
     then
         echo install ok
         if $WASI

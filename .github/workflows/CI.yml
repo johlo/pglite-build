@@ -20,11 +20,12 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       SDKROOT: /tmp/sdk
+      CONTAINER_PATH: /tmp/fs
       DEBUG: false
       USE_ICU: false
       PG_VERSION: 17.4
       PG_BRANCH: REL_17_4_WASM
-      PGL_BRANCH: pmp-p/pglite-build17
+      PGL_BRANCH: main
 
     steps:
       - uses: actions/checkout@v4
@@ -32,14 +33,14 @@ jobs:
           fetch-depth: 1
           submodules: true
 
-      - name: Build postgresql wasi portable-sdk
+      - name: Build postgresql+libpglite wasi with portable-sdk
         run: |
           WASI=true bash ./ci-17_4_WASM.sh
 
-      - name: Build postgresql emscripten node+web via portable-sdk
+      - name: Build postgresql+libpglite emscripten node+web with portable-sdk
         run: |
           rm -rf /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
-          bash ./ci-17_4_WASM.sh
+          WASI=false bash ./ci-17_4_WASM.sh
 
 #      - name: Build libpglite native with portable-sdk
 #        run: |
