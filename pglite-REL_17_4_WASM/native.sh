@@ -107,10 +107,12 @@ fi
 COMPILE="$CC -fPIC $PYINC $COPTS $CCOPTS -I${SDKROOT}/src/w2c2 -I${SDKROOT}/src/w2c2/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
-PYINC="-D__PYDK__=1 -shared $(python3-config --includes)"
-PYEXT=$(python3-config --extension-suffix)
-PYVER=${PYMAJOR}.${PYMINOR}$(python3-config --abiflags)
-PYLD="-lpython$PYVER $(python3-config --ldflags)"
+PYVER=$($PYTHON -V|cut -d' ' -f2|cut -d. -f1-2)
+PYVER=${PYVER}$(${PYTHON}-config --abiflags)
+
+PYINC="-D__PYDK__=1 -shared $(${PYTHON}-config --includes)"
+PYEXT=$(${PYTHON}-config --extension-suffix)
+PYLD="-lpython$PYVER $(${PYTHON}-config --ldflags)"
 
 echo "
 ========================================================================

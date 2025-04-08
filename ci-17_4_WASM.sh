@@ -1,5 +1,5 @@
 #!/bin/bash
-export PGL_BRANCH=pmp-p/pglite-build17
+export PGL_BRANCH=main
 export PG_VERSION=${PG_VERSION:-17.4}
 export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
 
