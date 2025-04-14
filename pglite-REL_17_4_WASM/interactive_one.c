@@ -263,6 +263,17 @@ clear_error() {
         send_ready_for_query = true;
 }
 
+void discard_input(){
+    if (!cma_rsize)
+        return;
+    PDEBUG("# 269: discard input");
+    pq_startmsgread();
+    for (int i = 0; i < cma_rsize; i++) {
+        pq_getbyte();
+    }
+    pq_endmsgread();
+}
+
 void
 startup_auth() {
     /* code is in handshake/auth domain so read whole msg now */
@@ -272,6 +283,8 @@ startup_auth() {
     } else {
         PDEBUG("# 273: sending auth request");
         //ClientAuthentication(MyProcPort);
+        discard_input();
+
 ClientAuthInProgress = true;
         md5Salt[0]=0x01;
         md5Salt[1]=0x23;
@@ -308,6 +321,7 @@ startup_pass(bool check) {
         pfree(passwd);
     } else {
         PDEBUG("# 310: auth skip");
+        discard_input();
     }
     ClientAuthInProgress = false;
 
@@ -538,7 +552,6 @@ incoming:
             /* wire on a socket or cma may auth, not handled by pg_proto block */
             if (peek==0) {
                 PDEBUG("# 540: handshake/auth");
-                if (!fp) pq_startmsgread();
                 startup_auth();
                 PDEBUG("# 542: auth request");
                 break;
@@ -546,7 +559,6 @@ incoming:
 
             if (peek==112) {
                 PDEBUG("# 547: password");
-                if (!fp) pq_startmsgread();
                 startup_pass(true);
                 break;
             }
