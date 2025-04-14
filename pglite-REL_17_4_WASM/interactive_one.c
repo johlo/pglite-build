@@ -266,7 +266,6 @@ clear_error() {
 void discard_input(){
     if (!cma_rsize)
         return;
-    PDEBUG("# 269: discard input");
     pq_startmsgread();
     for (int i = 0; i < cma_rsize; i++) {
         pq_getbyte();
