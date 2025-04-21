@@ -425,7 +425,7 @@ int connect(int socket, void *address, socklen_t address_len) {
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, void *dest_addr, socklen_t addrlen) {
     int sent = write( fd_out, buf, len);
 
-    printf("# 438: send/sendto(%d ?= %d )/%d sockfd=%d fno=%d fd_out=%d)\n", sent, ftell(fd_FILE), len, sockfd, fileno(fd_FILE), fd_out);
+    printf("# 438: send/sendto(%d ?= %ld )/%zu sockfd=%d fno=%d fd_out=%d)\n", sent, ftell(fd_FILE), len, sockfd, fileno(fd_FILE), fd_out);
     fd_queue+=sent;
     return sent;
 }
@@ -446,7 +446,7 @@ void sock_flush() {
             }
 
          } else {
-            printf("#       459: SENT=%d/%d fd_out=%d fno=%d\n", ftell(fd_FILE), fd_queue, fd_out, fileno(fd_FILE));
+            printf("#       459: SENT=%ld/%d fd_out=%d fno=%d\n", ftell(fd_FILE), fd_queue, fd_out, fileno(fd_FILE));
             fclose(fd_FILE);
             rename(PGS_ILOCK, PGS_IN);
 //freopen(PGS_ILOCK, "w+", fd_FILE);
@@ -474,7 +474,7 @@ volatile int fd_filesize = 0;
 
 
 ssize_t recvfrom_bc(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len) {
-    int busy = 0;
+//    int busy = 0;
     int rcv = -1;
     sock_flush();
 /*
@@ -503,14 +503,14 @@ ssize_t recvfrom_bc(int socket, void *buffer, size_t length, int flags, void *ad
         if (rcv<fd_filesize) {
             fd_current_pos = ftell(sock_in);
             if (fd_current_pos<fd_filesize) {
-                printf("# 514: recvfrom_bc(%s max=%d) block=%d read=%d / %d\n", PGS_OUT, length, rcv, fd_current_pos, fd_filesize);
+                printf("# 506: recvfrom_bc(%s max=%zu) block=%d read=%d / %d\n", PGS_OUT, length, rcv, fd_current_pos, fd_filesize);
                 fclose(sock_in);
                 return rcv;
             }
         }
 
         // fully read
-        printf("# 521: recvfrom_bc(%s max=%d total=%d) read=%d\n", PGS_OUT, length, fd_filesize, rcv);
+        printf("# 513: recvfrom_bc(%s max=%zu total=%d) read=%d\n", PGS_OUT, length, fd_filesize, rcv);
         fd_queue = 0;
         fd_filesize = 0;
         fd_current_pos = 0;

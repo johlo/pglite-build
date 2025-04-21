@@ -49,7 +49,6 @@ export WASI_SDK=${WASI_SDK:-25.0}
 export PYBUILD=${PYBUILD:-3.13}
 
 
-
 if $WASI
 then
     BUILD=wasi
@@ -303,7 +302,37 @@ END
 
     # store all pg options that have impact on cmd line initdb/boot
     cat > ${PGROOT}/pgopts.sh <<END
-export BUILD_PATH="$BUILD_PATH"
+export PG_BRANCH=$PG_BRANCH
+export CMA_MB=$CMA_MB
+export TOTAL_MEMORY=$TOTAL_MEMORY
+export CC_PGLITE="$CC_PGLITE"
+
+export CI=$CI
+export PORTABLE=$PORTABLE
+export SDKROOT=$SDKROOT
+export GETZIC=$GETZIC
+export ZIC=$ZIC
+export WORKSPACE=$WORKSPACE
+export PGROOT=$PGROOT
+export WEBROOT=$WEBROOT
+export PG_BUILD=$PG_BUILD
+export PGL_BUILD_NATIVE=$PGL_BUILD_NATIVE
+export PG_DIST=$PG_DIST
+export PG_DIST_EXT=$PG_DIST_EXT
+export PGL_DIST_JS=$PGL_DIST_JS
+
+export PGL_DIST_NATIVE=$PGL_DIST_NATIVE
+export PGL_DIST_WEB=$PGL_DIST_WEB
+export DEBUG=$DEBUG
+
+export USE_ICU=$USE_ICU
+export PGUSER=$PGUSER
+
+export WASI=$WASI
+export WASI_SDK=$WASI_SDK
+export PYBUILD=$PYBUILD
+
+export BUILD_PATH=$BUILD_PATH
 export COPTS="$COPTS"
 export LOPTS="$LOPTS"
 export PGDEBUG="$PGDEBUG"
@@ -318,6 +347,7 @@ export PGOPTS="\\
  -c fsync=on -c synchronous_commit=on \\
  -c wal_buffers=4MB -c min_wal_size=80MB \\
  -c shared_buffers=128MB"
+
 END
 
     export PGLITE=$(pwd)/packages/pglite
@@ -325,6 +355,8 @@ END
     echo "export PGSRC=${WORKSPACE}" >> ${PGROOT}/pgopts.sh
     echo "export PGLITE=${PGLITE}" >> ${PGROOT}/pgopts.sh
 
+    [ -f /tmp/portable.opts ] && cat /tmp/portable.opts >> ${PGROOT}/pgopts.sh
+    [ -f /tmp/portable.dev ] && cat /tmp/portable.dev >> ${PGROOT}/pgopts.sh
 
     . ${PGROOT}/pgopts.sh
 
@@ -503,6 +535,39 @@ then
         then
             echo "TODO: wasi pack/tests"
         else
+cat > pglite-link.sh <<END
+. ${PGROOT}/pgopts.sh
+. ${SDKROOT}/wasm32-bi-emscripten-shell.sh
+./pglite-wasm/build.sh
+
+if [ -d pglite ]
+then
+    mkdir -p pglite/packages/pglite/release
+
+    for archive in ${PG_DIST_EXT}/*.tar
+    do
+        echo "    packing extension \$archive"
+        gzip -k -9 \$archive
+        mv \$archive.gz pglite/packages/pglite/release/
+    done
+
+    cp ${PGL_DIST_WEB}/pglite.* pglite/packages/pglite/release/
+    pushd pglite
+        export HOME=$PG_BUILD
+        [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
+        . $HOME/.bashrc
+        pnpm install -g npm vitest
+        pnpm install
+        pnpm run ts:build
+    popd
+
+    if $CI
+    then
+        ./runtests.sh || exit 566
+    fi
+fi
+END
+            chmod +x pglite-link.sh
             if [ -d pglite ]
             then
                 mkdir -p pglite/packages/pglite/release
@@ -526,10 +591,10 @@ then
 
                 if $CI
                 then
-                    ./runtests.sh || exit 528
+                    ./runtests.sh || exit 594
                 fi
-
             fi
+
         fi
     else
         echo "linking libpglite wasm failed"

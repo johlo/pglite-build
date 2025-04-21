@@ -387,7 +387,7 @@ interactive_one() {
         }
     }
 
-    doing_extended_query_message = false;
+
     MemoryContextSwitchTo(MessageContext);
     MemoryContextResetAndDeleteChildren(MessageContext);
 
@@ -538,17 +538,24 @@ incoming:
     #error "sigsetjmp unsupported"
 #endif // wasi
 
+    send_ready_for_query = false;
+
     while (pipelining) {
+
         if (is_repl) {
-            // TODO: are we sure repl could not pipeline ?
+            // are we sure repl could not pipeline ?
             pipelining = false;
             /* stdio node repl */
+#if PGDEBUG
             printf("# 533: enforcing REPL mode, wire off, echo %d\n", force_echo);
+#endif
             whereToSendOutput = DestDebug;
         }
 
+        DoingCommandRead = true;
         if (is_wire) {
-            /* wire on a socket or cma may auth, not handled by pg_proto block */
+            /* wire on a socket or cma may auth */
+            /* would be handled as error by pg_proto block */
             if (peek==0) {
                 PDEBUG("# 540: handshake/auth");
                 startup_auth();
@@ -565,11 +572,13 @@ incoming:
             firstchar = SocketBackend(inBuf);
 
             pipelining = pq_buffer_remaining_data()>0;
+#if PGDEBUG
             if (!pipelining) {
                 printf("# 556: end of wire, rfq=%d\n", send_ready_for_query);
             } else {
                 printf("# 558: no end of wire -> pipelining, rfq=%d\n", send_ready_for_query);
             }
+#endif
         } else {
             /* nowire */
             pipelining = false;
@@ -580,28 +589,37 @@ incoming:
             	firstchar = 'Q';
             }
         }
+        DoingCommandRead = false;
 
-        #if PGDEBUG
+#if PGDEBUG
         if (!pipelining) {
             printf("# 573: wire=%d 1stchar=%c Q: %s\n", is_wire,  firstchar, inBuf->data);
             force_echo = false;
         } else {
             printf("# 576: PIPELINING [%c]!\n", firstchar);
         }
-        #endif
+#endif
 
-        if (!ignore_till_sync)
+        if (!ignore_till_sync) {
+            /* initially, or after error */
             send_ready_for_query = true;
-
-        if (ignore_till_sync && firstchar != EOF) {
-            puts("@@@@@@@@@@@@@ 584 TODO: postgres.c 	4684 :	continue");
-        } else { /* process notifications (ASYNC) */
-            if (notifyInterruptPending) {               PDEBUG("# 586: @@@ has notification @@@@\n");
+            if (notifyInterruptPending)
                ProcessClientReadInterrupt(true);
+        } else {
+            /* ignoring till sync will skip all pipeline */
+            if (firstchar != EOF) {
+                if (firstchar != 'S') {
+                    continue;
+                }
             }
         }
 
         #include "pg_proto.c"
+
+        if (send_ready_for_query) {
+            ReadyForQuery(whereToSendOutput);
+            send_ready_for_query = false;
+        }
     }
 
     if (!is_repl) {

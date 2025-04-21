@@ -1,4 +1,3 @@
-#!/bin/bash
 export WASI=${WASI:-false}
 
 if ${WASI}
@@ -128,7 +127,11 @@ pushd ${PGL_BUILD_NATIVE}
 popd
 END
             chmod +x ${PGL_BUILD_NATIVE}/pglite-native.sh
+            echo "
 
+    * native build here : ${PGL_BUILD_NATIVE}/pglite-native.sh
+
+"
         else
             echo "linking libpglite ${BUILD} failed in $(pwd)"
         fi
