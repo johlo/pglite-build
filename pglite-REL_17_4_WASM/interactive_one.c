@@ -167,7 +167,7 @@ static void io_init(bool in_auth, bool out_auth) {
 
 
 
-volatile int sf_connected = 0;
+
 volatile bool sockfiles = false;
 volatile bool is_wire = true;
 extern char * cma_port;
@@ -276,10 +276,13 @@ void discard_input(){
 void
 startup_auth() {
     /* code is in handshake/auth domain so read whole msg now */
+    send_ready_for_query = false;
 
     if (ProcessStartupPacket(MyProcPort, true, true) != STATUS_OK) {
         PDEBUG("# 271: ProcessStartupPacket !OK");
     } else {
+
+        sf_connected++;
         PDEBUG("# 273: sending auth request");
         //ClientAuthentication(MyProcPort);
         discard_input();
@@ -340,10 +343,10 @@ startup_pass(bool check) {
         pq_sendint32(&buf, (int32) MyCancelKey);
         pq_endmessage(&buf);
     }
-PDEBUG("# 330: TODO: set a pg_main started flag");
-    sf_connected++;
+PDEBUG("# 330: TODO: set a pgl started flag");
     send_ready_for_query = true;
-
+    ignore_till_sync = false;
+    volatile int sf_connected = 0;
 }
 
 extern void pg_startcma();
@@ -361,6 +364,7 @@ interactive_one() {
 
     bool had_notification = notifyInterruptPending;
     bool notified = false;
+    send_ready_for_query = false;
 
     if (!MyProcPort) {
         PDEBUG("# 353: client created");
@@ -538,7 +542,6 @@ incoming:
     #error "sigsetjmp unsupported"
 #endif // wasi
 
-    send_ready_for_query = false;
 
     while (pipelining) {
 

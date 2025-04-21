@@ -11,7 +11,7 @@ pushd pglite/packages/pglite
 
     for test in $(find ./tests/*.js ./tests/contrib/*.js)
     do
-        for skip in tests/test-utils.js$ tests/contrib/uuid_ossp.test.js$
+        for skip in tests/test-utils.js$
         do
             if echo $test|grep -q $skip
             then

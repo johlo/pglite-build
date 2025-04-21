@@ -1,5 +1,6 @@
 #include <setjmp.h>
 
+volatile int sf_connected = 0;
 FILE * single_mode_feed = NULL;
 volatile bool inloop = false;
 volatile sigjmp_buf local_sigjmp_buf;
@@ -10,6 +11,14 @@ void
 pg_shutdown() {
     PDEBUG("# 11:" __FILE__": pg_shutdown");
     proc_exit(66);
+}
+
+__attribute__((export_name("pgl_closed")))
+int
+pgl_closed() {
+    if (sf_connected>0)
+        return 1;
+    return 0;
 }
 
 #if FIXME
