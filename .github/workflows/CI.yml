@@ -25,7 +25,7 @@ jobs:
       USE_ICU: false
       PG_VERSION: 17.4
       PG_BRANCH: REL_17_4_WASM
-      PGL_BRANCH: pmp-p/sockfixes
+      PGL_BRANCH: sockfixes
 
     steps:
       - uses: actions/checkout@v4
