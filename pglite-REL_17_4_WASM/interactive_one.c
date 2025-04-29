@@ -180,14 +180,6 @@ interactive_write(int size) {
     cma_wsize = 0;
 }
 
-__attribute__((export_name("ping")))
-void
-ping(void) {
-#if PGDEBUG
-    puts("pong");
-#endif
-}
-
 __attribute__((export_name("use_wire")))
 void
 use_wire(int state) {
@@ -372,6 +364,7 @@ interactive_one() {
     }
 
 #if PGDEBUG
+    puts("\n\n# 377: interactive_one");
     if (notifyInterruptPending)
         PDEBUG("# 359: has notification !");
 #endif
@@ -384,7 +377,7 @@ interactive_one() {
     }
 
     if (!cma_rsize) {
-        // prepare reply queue
+        puts("# 388: socketfiles"); // prepare reply queue
         if (!SOCKET_FILE) {
             SOCKET_FILE =  fopen(PGS_OLOCK, "w") ;
             MyProcPort->sock = fileno(SOCKET_FILE);
@@ -448,22 +441,32 @@ interactive_one() {
         }
     } else {
         fp = fopen(PGS_IN, "r");
-
+PDEBUG("# 451:" PGS_IN);
         // read file in socket buffer for SocketBackend to consumme.
         if (fp) {
             fseek(fp, 0L, SEEK_END);
             packetlen = ftell(fp);
             if (packetlen) {
-                // always.
-                is_wire = true;
-                sockfiles = true;
-                whereToSendOutput = DestRemote;
+                // set to always true if no REPL.
+//                is_wire = true;
                 resetStringInfo(inBuf);
                 rewind(fp);
                 /* peek on first char */
                 peek = getc(fp);
                 rewind(fp);
-                pq_recvbuf_fill(fp, packetlen);
+                if (is_repl && !is_wire) {
+                    // sql in buffer
+                    for (int i=0; i<packetlen; i++) {
+                        appendStringInfoChar(inBuf, fgetc(fp));
+                    }
+                    sockfiles = false;
+                } else {
+                    // auth won't go to REPL, ever.
+                    whereToSendOutput = DestRemote;
+                    // wire in socket reader
+                    pq_recvbuf_fill(fp, packetlen);
+                    sockfiles = true;
+                }
 #if PGDEBUG
                 rewind(fp);
 #endif
@@ -489,15 +492,18 @@ interactive_one() {
                     goto wire_flush;
                 }
 
-                /* else it was wire msg */
+                /* else it was wire msg or sql */
 #if PGDEBUG
-                printf("# 477: node+repl is_wire -> true : %c\n", peek);
-                force_echo = true;
+                if (is_wire) {
+                    printf("# 499: is_wire -> true : %c\n", peek);
+                    force_echo = true;
+                }
+
 #endif
                 firstchar = peek;
                 goto incoming;
             } // wire msg
-
+PDEBUG("# 500: NO DATA:" PGS_IN );
         } // fp data read
 
         // is it REPL in cma ?
@@ -550,7 +556,7 @@ incoming:
             pipelining = false;
             /* stdio node repl */
 #if PGDEBUG
-            printf("# 533: enforcing REPL mode, wire off, echo %d\n", force_echo);
+            printf("\n# 533: enforcing REPL mode, wire off, echo %d\n", force_echo);
 #endif
             whereToSendOutput = DestDebug;
         }
@@ -584,7 +590,7 @@ incoming:
 #endif
         } else {
             /* nowire */
-            pipelining = false;
+            // pipelining = false;
             if (firstchar == EOF && inBuf->len == 0) {
                 firstchar = EOF;
             } else {
@@ -672,12 +678,21 @@ wire_flush:
             }
 
         } else {
-            cma_wsize = 0;
+            cma_wsize = 0;  PDEBUG("# 680: no socket data");
         }
     } else {
         pg_prompt();
+#if PGDEBUG
+        puts("# 683: repl output");
+        if (SOCKET_DATA>0) {
+                puts("# 686: socket has data");
+            if (sockfiles)
+                printf("# 688: socket file not flushed -> read(%d) " PGS_OLOCK "->" PGS_OUT"\n", SOCKET_DATA);
+        }
+        if (cma_wsize)
+            puts("ERROR: cma was not flushed before socketfile interface");
+#endif
     }
-
 
 
     // always free kernel buffer !!!

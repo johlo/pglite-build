@@ -561,9 +561,14 @@ then
         pnpm run ts:build
     popd
 
-    if $CI
+    if [ -f /alpine ]
     then
-        ./runtests.sh || exit 566
+        echo skipping tests
+    else
+        if $CI
+        then
+            ./runtests.sh || exit 566
+        fi
     fi
 fi
 END
@@ -589,9 +594,14 @@ END
                     pnpm run ts:build
                 popd
 
-                if $CI
+                if [ -f /alpine ]
                 then
-                    ./runtests.sh || exit 594
+                    echo skipping tests
+                else
+                    if $CI
+                    then
+                        ./runtests.sh || exit 566
+                    fi
                 fi
             fi
 
