@@ -9,7 +9,7 @@ pushd pglite/packages/pglite
 
     skipt=false
 
-    for test in $(find ./tests/*.ts ./tests/contrib/*.ts)
+    for test in $(find ./tests/*.ts ./tests/contrib/*.js)
     do
         for skip in tests/test-utils.js$ tests/test-utils.ts$
         do
