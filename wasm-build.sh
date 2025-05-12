@@ -475,9 +475,19 @@ then
 
 fi
 
+
+echo "
+
+        Extensions distribution folder : ${PG_DIST_EXT}
+
+
+"
+
+
+
 # only build extra when targeting pglite-wasm .
-pwd
-if [ -f  ${WORKSPACE}/pglite-wasm/build.sh ]
+
+if [ -f  ${WORKSPACE}/pglite-${PG_BRANCH}/build.sh ]
 then
     if $WASI
     then
@@ -509,7 +519,7 @@ then
                 fi
                 echo "======================= ${extra_ext} : $(pwd) ==================="
 
-                ./extra/${extra_ext}.sh || exit 480
+                ./extra/${extra_ext}.sh || exit 522
 
                 python3 ${PORTABLE}/pack_extension.py
             done
@@ -529,16 +539,16 @@ then
     echo "
     * building + linking pglite-wasm (initdb/loop/transport/repl/backend)
 "
-    if ${WORKSPACE}/pglite-wasm/build.sh
+    if ${WORKSPACE}/pglite-${PG_BRANCH}/build.sh
     then
         if $WASI
         then
             echo "TODO: wasi pack/tests"
         else
-cat > pglite-link.sh <<END
+            cat > pglite-link.sh <<END
 . ${PGROOT}/pgopts.sh
 . ${SDKROOT}/wasm32-bi-emscripten-shell.sh
-./pglite-wasm/build.sh
+./pglite-${PG_BRANCH}/build.sh
 
 if [ -d pglite ]
 then
@@ -547,7 +557,7 @@ then
     for archive in ${PG_DIST_EXT}/*.tar
     do
         echo "    packing extension \$archive"
-        gzip -k -9 \$archive
+        gzip -f -k -9 \$archive
         mv \$archive.gz pglite/packages/pglite/release/
     done
 
@@ -555,60 +565,47 @@ then
     pushd pglite
         export HOME=$PG_BUILD
         [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-        . $HOME/.bashrc
+        if [ -f $HOME/.bashrc ]
+        then
+            echo -n
+        else
+            export PATH=$PATH:${SDKROOT}/build/share/pnpm
+            export PNPM_HOME=${SDKROOT}/build/share/pnpm
+        fi
         pnpm install -g npm vitest
         pnpm install
         pnpm run ts:build
     popd
 
-    if [ -f /alpine ]
+    if [ -f /skiptest ]
     then
         echo skipping tests
     else
         if $CI
         then
-            ./runtests.sh || exit 566
+            ./runtests.sh || exit 580
         fi
     fi
 fi
 END
             chmod +x pglite-link.sh
+            ./pglite-link.sh
+
             if [ -d pglite ]
             then
-                mkdir -p pglite/packages/pglite/release
-
+               echo -n
+            else
                 for archive in ${PG_DIST_EXT}/*.tar
                 do
-                    echo "    packing extension $archive"
-                    gzip -k -9 $archive
-                    mv $archive.gz pglite/packages/pglite/release/
+                    echo "    packing extension $archive (docker build)"
+                    gzip -f -k -9 $archive
                 done
-
-                cp ${PGL_DIST_WEB}/pglite.* pglite/packages/pglite/release/
-                pushd pglite
-                    export HOME=$PG_BUILD
-                    [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-                    . $HOME/.bashrc
-                    pnpm install -g npm vitest
-                    pnpm install
-                    pnpm run ts:build
-                popd
-
-                if [ -f /alpine ]
-                then
-                    echo skipping tests
-                else
-                    if $CI
-                    then
-                        ./runtests.sh || exit 566
-                    fi
-                fi
             fi
 
         fi
     else
         echo "linking libpglite wasm failed"
-        exit 536
+        exit 602
     fi
-fi
 
+fi

@@ -9,9 +9,9 @@ pushd pglite/packages/pglite
 
     skipt=false
 
-    for test in $(find ./tests/*.js ./tests/contrib/*.js)
+    for test in $(find ./tests/*.ts ./tests/contrib/*.ts)
     do
-        for skip in tests/test-utils.js$
+        for skip in tests/test-utils.js$ tests/test-utils.ts$
         do
             if echo $test|grep -q $skip
             then
@@ -28,7 +28,7 @@ pushd pglite/packages/pglite
             continue
         fi
 
-        if vitest $test
+        if vitest --bail 1 $test
         then
             echo -n
         else

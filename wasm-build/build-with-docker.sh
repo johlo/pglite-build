@@ -1,56 +1,37 @@
 #!/bin/bash
 
-export WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
-
 # we are using a custom emsdk to build pglite wasm
 # this is available as a docker image under electricsql/pglite-builder
 IMG_NAME="electricsql/pglite-builder"
-IMG_TAG="17.4_3.1.61.6bi"
+IMG_TAG="17.4_3.1.61.7bi"
+
+[ -f postgres-pglite/configure ] || ln -s . postgres-pglite
+
+export WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
+
+cd $(realpath ${WORKSPACE}/postgres-pglite)
 
 [ -f ./pglite/.buildconfig ] && cp ./pglite/.buildconfig .buildconfig
 
 source .buildconfig
 
-if [[ -z "$SDKROOT" || -z "$PG_VERSION" ]]; then
-  echo "Missing SDKROOT and PG_VERSION env vars."
-  echo "Source them from .buildconfig"
-  exit 1
+cat .buildconfig
+
+
+mkdir -p dist/pglite dist/extensions-emsdk
+
+if echo -n $@|grep -q it$
+then
+    PROMPT="&& bash ) || bash"
+else
+    PROMPT=")"
 fi
 
-
-# release directory
-mkdir -p ${WORKSPACE}/dist
-
-# lib postgres "libpgcore.a" backend with no main/main.o tcop/postgres.o.
-mkdir -p ${WORKSPACE}/dist/postgres-wasm
-
-# full wasi postgres ( no extensions , only plpgsql and vector
-mkdir -p ${WORKSPACE}/dist/postgres-wasi
-
-# node/bun app with RAWFS support ( direct disk access from Node/Bun )
-mkdir -p ${WORKSPACE}/dist/postgres-emsdk
-
-# node/bun pglite with RAWFS support ( direct disk access from Node/Bun )
-mkdir -p ${WORKSPACE}/dist/pglite-emsdk
-
-# web+node pglite, smaller node fs mount on subfolders no direct disk access.
-mkdir -p ${WORKSPACE}/dist/pglite-sandbox
-
-
-# web only pglite - smallest - no node fs mount.
-mkdir -p ${WORKSPACE}/dist/pglite-web
-
-
-
-docker run \
+docker run $@ \
   --rm \
-  -e SDKROOT=$SDKROOT \
-  -e PG_VERSION=${PG_VERSION} \
-  -e PG_BRANCH=${PG_BRANCH} \
-  -v /tmp/sdk:${WORKSPACE}/dist \
-  -v .:${WORKSPACE} \
+  --env-file .buildconfig \
+  --workdir=/workspace \
+  -v ${WORKSPACE}/postgres-pglite:/workspace:rw \
+  -v ${WORKSPACE}/postgres-pglite/dist:/tmp/sdk/dist:rw \
   $IMG_NAME:$IMG_TAG \
-  bash -c "source /tmp/sdk/wasm32-bi-emscripten-shell.sh && /workspace/wasm-build.sh ${WHAT:-\"contrib extra\"}"
-
-
-
+  bash --noprofile --rcfile ${SDKROOT}/wasm32-bi-emscripten-shell.sh -ci "( ./wasm-build.sh ${WHAT:-\"contrib extra\"} $PROMPT"

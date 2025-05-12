@@ -1,10 +1,13 @@
 #include <unistd.h>  // access, unlink
-
+#define PGL_LOOP
 #if defined(__wasi__)
 // volatile sigjmp_buf void*;
 #else
 volatile sigjmp_buf local_sigjmp_buf;
 #endif
+
+// track back how many ex raised in steps of the loop until sucessfull clear_error
+volatile int canary_ex = 0;
 
 /* TODO : prevent multiple write and write while reading ? */
 volatile int cma_wsize = 0;
@@ -188,13 +191,13 @@ use_wire(int state) {
 #endif
     if (state>0) {
 #if PGDEBUG
-        printf("# 199: wire mode, repl off, echo %d\n", force_echo);
+        printf("\n\n# 194: PACKET START: wire mode, repl off, echo %d\n", force_echo);
 #endif
         is_wire = true;
         is_repl = false;
     } else {
 #if PGDEBUG
-        printf("# 205: repl mode, no wire, echo %d\n", force_echo);
+        printf("\n\n# 200: PACKET START: repl mode, no wire, echo %d\n", force_echo);
 #endif
         is_wire = false;
         is_repl = true;
@@ -356,7 +359,7 @@ interactive_one() {
 
     bool had_notification = notifyInterruptPending;
     bool notified = false;
-    send_ready_for_query = false;
+    // send_ready_for_query = false;
 
     if (!MyProcPort) {
         PDEBUG("# 353: client created");
@@ -397,10 +400,10 @@ interactive_one() {
 	if (send_ready_for_query) {
 
 		if (IsAbortedTransactionBlockState()) {
-			puts("@@@@ TODO 390: idle in transaction (aborted)");
+			puts("@@@@ TODO 403: idle in transaction (aborted)");
 		}
 		else if (IsTransactionOrTransactionBlock()) {
-			puts("@@@@ TODO 393: idle in transaction");
+			puts("@@@@ TODO 406: idle in transaction");
 		} else {
 			if (notifyInterruptPending) {
 				ProcessNotifyInterrupt(false);
@@ -433,15 +436,15 @@ interactive_one() {
         if (!is_repl) {
             whereToSendOutput = DestRemote;
             if (!is_wire)
-                PDEBUG("# 426: repl message in cma buffer !");
+                PDEBUG("# 439: repl message in cma buffer !");
         } else {
             if (is_wire)
-                PDEBUG("# 429: wire message in cma buffer for REPL !");
+                PDEBUG("# 442: wire message in cma buffer for REPL !");
             whereToSendOutput = DestDebug;
         }
     } else {
         fp = fopen(PGS_IN, "r");
-PDEBUG("# 451:" PGS_IN);
+PDEBUG("# 447:" PGS_IN "\n");
         // read file in socket buffer for SocketBackend to consumme.
         if (fp) {
             fseek(fp, 0L, SEEK_END);
@@ -467,9 +470,7 @@ PDEBUG("# 451:" PGS_IN);
                     pq_recvbuf_fill(fp, packetlen);
                     sockfiles = true;
                 }
-#if PGDEBUG
-                rewind(fp);
-#endif
+
                 /* is it startup/auth packet ? */
                 if (!peek) {
                     startup_auth();
@@ -481,14 +482,14 @@ PDEBUG("# 451:" PGS_IN);
                 }
             }
 
-            /* FD CLEANUP, all cases */
-            fclose(fp);
-            unlink(PGS_IN);
+            /* do not forget FD CLEANUP in all cases */
+//            fclose(fp);
+//            unlink(PGS_IN);
 
             if (packetlen) {
                 // it was startup/auth , write and return fast.
                 if (peek<0) {
-                    PDEBUG("# 471: handshake/auth/pass skip");
+                    PDEBUG("# 492: handshake/auth/pass skip");
                     goto wire_flush;
                 }
 
@@ -503,12 +504,12 @@ PDEBUG("# 451:" PGS_IN);
                 firstchar = peek;
                 goto incoming;
             } // wire msg
-PDEBUG("# 500: NO DATA:" PGS_IN );
+PDEBUG("# 507: NO DATA:" PGS_IN  "\n");
         } // fp data read
 
         // is it REPL in cma ?
         if (!peek)
-            return;
+            goto return_early;
 
         firstchar = peek ;
 
@@ -520,25 +521,25 @@ PDEBUG("# 500: NO DATA:" PGS_IN );
 #if PGDEBUG
     if (packetlen)
         IO[packetlen]=0; // wire blocks are not zero terminated
-    printf("\n# 500: fd=%d is_embed=%d is_repl=%d is_wire=%d fd %s,len=%d cma=%d peek=%d [%s]\n", MyProcPort->sock, is_embed, is_repl, is_wire, PGS_OLOCK, packetlen,cma_rsize, peek, IO);
+    printf("\n# 524: fd=%d is_embed=%d is_repl=%d is_wire=%d fd %s,len=%d cma=%d peek=%d [%s]\n", MyProcPort->sock, is_embed, is_repl, is_wire, PGS_OLOCK, packetlen,cma_rsize, peek, IO);
 #endif
 
-    // buffer query TODO: direct access ?
-    // CMA wire mode. -> packetlen was set to cma_rsize
-    resetStringInfo(inBuf);
-
-    for (int i=0; i<packetlen; i++) {
-        appendStringInfoChar(inBuf, IO[i]);
+    // when cma buffer is used to fake stdin, data is not read by socket/wire backend.
+    if (is_repl) {
+        resetStringInfo(inBuf);
+        for (int i=0; i<packetlen; i++) {
+            appendStringInfoChar(inBuf, IO[i]);
+        }
     }
 
     if (packetlen<2) {
-        puts("# 512: WARNING: empty packet");
-        cma_rsize= 0;
+        puts("# 536: WARNING: empty packet");
+        //cma_rsize= 0;
         if (is_repl)
             pg_prompt();
         // always free cma buffer !!!
-        IO[0] = 0;
-        return;
+        // IO[0] = 0;
+        goto return_early;
     }
 
 incoming:
@@ -611,7 +612,7 @@ incoming:
 
         if (!ignore_till_sync) {
             /* initially, or after error */
-            send_ready_for_query = true;
+            // send_ready_for_query = true;
             if (notifyInterruptPending)
                ProcessClientReadInterrupt(true);
         } else {
@@ -625,9 +626,13 @@ incoming:
 
         #include "pg_proto.c"
 
-        if (send_ready_for_query) {
-            ReadyForQuery(whereToSendOutput);
-            send_ready_for_query = false;
+        if (pipelining) {
+            pipelining = pq_buffer_remaining_data()>0;
+            if (pipelining && send_ready_for_query) {
+puts("# 631:  PIPELINING + rfq");
+                ReadyForQuery(whereToSendOutput);
+                send_ready_for_query = false;
+            }
         }
     }
 
@@ -641,7 +646,8 @@ wire_flush:
             if (send_ready_for_query) {
                 PDEBUG("# 602: end packet - sending rfq\n");
                 ReadyForQuery(DestRemote);
-                //done at postgres.c 4623 send_ready_for_query = false;
+                //done at postgres.c 4623
+                send_ready_for_query = false;
             } else {
                 PDEBUG("# 606: end packet - with no rfq\n");
             }
@@ -693,6 +699,12 @@ wire_flush:
             puts("ERROR: cma was not flushed before socketfile interface");
 #endif
     }
+return_early:;
+    /* always FD CLEANUP */
+    if (fp) {
+        fclose(fp);
+        unlink(PGS_IN);
+    }
 
 
     // always free kernel buffer !!!
@@ -700,6 +712,9 @@ wire_flush:
     IO[0] = 0;
 
     #undef IO
+
+    // reset EX counter
+    canary_ex = 0;
 }
 
-
+#undef PGL_LOOP
