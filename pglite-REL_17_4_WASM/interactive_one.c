@@ -524,9 +524,9 @@ PDEBUG("# 507: NO DATA:" PGS_IN  "\n");
     printf("\n# 524: fd=%d is_embed=%d is_repl=%d is_wire=%d fd %s,len=%d cma=%d peek=%d [%s]\n", MyProcPort->sock, is_embed, is_repl, is_wire, PGS_OLOCK, packetlen,cma_rsize, peek, IO);
 #endif
 
+    resetStringInfo(inBuf);
     // when cma buffer is used to fake stdin, data is not read by socket/wire backend.
     if (is_repl) {
-        resetStringInfo(inBuf);
         for (int i=0; i<packetlen; i++) {
             appendStringInfoChar(inBuf, IO[i]);
         }

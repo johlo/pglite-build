@@ -11,7 +11,9 @@ export WORKSPACE=${GITHUB_WORKSPACE:-$(pwd)}
 
 cd $(realpath ${WORKSPACE}/postgres-pglite)
 
+[ -f ${BUILD_CONFIG:-postgres-pglite}/.buildconfig ] && cp ${BUILD_CONFIG:-postgres-pglite}/.buildconfig .buildconfig
 [ -f ./pglite/.buildconfig ] && cp ./pglite/.buildconfig .buildconfig
+
 
 source .buildconfig
 
