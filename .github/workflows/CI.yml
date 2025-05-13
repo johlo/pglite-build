@@ -39,15 +39,15 @@ jobs:
         run: |
           WASI=true bash ./ci-17_4_WASM.sh
 
+      - name: Build libpglite native with portable-sdk
+        run: |
+          echo "WIP arch:"
+          bash pglite-REL_17_4_WASM/native.sh
+
       - name: Build postgresql+libpglite emscripten node+web with portable-sdk
         run: |
           rm -rf /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
           WASI=false bash ./ci-17_4_WASM.sh
-
-#      - name: Build libpglite native with portable-sdk
-#        run: |
-#       	  echo "WIP arch:"
-#          bash -c arch
 
       - name: Upload sdk to Github Releases
         if: github.event_name == 'release'
