@@ -454,7 +454,7 @@ $(find ${WORKDIR}/patches-${PG_BRANCH}/postgresql-*)
 
 Fatal: failed to apply patch : $one
 "
-                        exit 453
+                        exit 457
                     fi
                 done
             fi
