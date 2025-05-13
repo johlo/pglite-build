@@ -1,5 +1,4 @@
 #!/bin/bash
-
 export PG_VERSION=${PG_VERSION:-17.4}
 
 #set -x;
@@ -47,6 +46,7 @@ export PGUSER=${PGUSER:-postgres}
 export WASI=${WASI:-false}
 export WASI_SDK=${WASI_SDK:-25.0}
 export PYBUILD=${PYBUILD:-3.13}
+
 
 
 if $WASI
@@ -194,6 +194,21 @@ fi
 
 # also used for non make (linking and pgl_main)
 export CC_PGLITE="-DPYDK=1 -DPG_PREFIX=${PGROOT} -I${PGROOT}/include ${CC_PGLITE}"
+
+
+
+echo "
+    ----------------------------------------
+"
+env|grep PG |grep -v BUILD
+env|grep BUILD|grep -v PG
+env|grep WA
+env|grep PY
+
+echo "
+    ----------------------------------------
+"
+
 
 
 
@@ -565,13 +580,7 @@ then
     pushd pglite
         export HOME=$PG_BUILD
         [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-        if [ -f $HOME/.bashrc ]
-        then
-            echo -n
-        else
-            export PATH=$PATH:${SDKROOT}/build/share/pnpm
-            export PNPM_HOME=${SDKROOT}/build/share/pnpm
-        fi
+        . $HOME/.bashrc
         pnpm install -g npm vitest
         pnpm install
         pnpm run ts:build

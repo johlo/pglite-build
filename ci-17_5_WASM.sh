@@ -67,6 +67,7 @@ export GETZIC=${GETZIC}
 export ZIC=${ZIC}
 export CI=${CI}
 export WASI=${WASI}
+export PYBUILD=3.13
 END
 
 

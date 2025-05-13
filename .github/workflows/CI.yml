@@ -26,6 +26,8 @@ jobs:
       PG_VERSION: 17.5
       PG_BRANCH: REL_17_5_WASM
       PGL_BRANCH: main
+      ZIC: /usr/sbin/zic
+      GETZIC: false
 
     steps:
       - uses: actions/checkout@v4

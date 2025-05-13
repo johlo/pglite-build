@@ -104,7 +104,7 @@ else
     CCOPTS="-fbracket-depth=4096 -Wno-unknown-attributes"
 fi
 
-COMPILE="$CC -fPIC $PYINC $COPTS $CCOPTS -I${SDKROOT}/src/w2c2 -I${SDKROOT}/src/w2c2/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
+COMPILE="$CC -fPIC $PYINC $COPTS $CCOPTS -I${SDKROOT}/native -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
 PYVER=$($PYTHON -V|cut -d' ' -f2|cut -d. -f1-2)
@@ -136,8 +136,9 @@ $COMPILE
 
 [ -f ${WASM2C}$PYEXT ] && rm ${WASM2C}$PYEXT
 
+# -I${SDKROOT}/src/w2c2/w2c2
 
-COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/src/w2c2 -I${SDKROOT}/src/w2c2/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
+COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/native -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
 time $COMPILE
