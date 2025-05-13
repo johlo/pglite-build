@@ -9,7 +9,7 @@ export USE_ICU=${USE_ICU:-false}
 export GETZIC=${GETZIC:-false}
 export ZIC=${ZIC:-/usr/sbin/zic}
 export CI=${CI:-false}
-
+export SDKROOT=/tmp/sdk
 export WORKSPACE=$(pwd)
 
 export WASI=${WASI:-false}
@@ -59,14 +59,19 @@ mkdir -p $CONTAINER_PATH/tmp
 
 #TODO: pglite has .buildconfig in postgres source dir instead.
     cat > $CONTAINER_PATH/tmp/portable.opts <<END
-export DEBUG=${DEBUG}
-export USE_ICU=${USE_ICU}
 export PG_VERSION=${PG_VERSION}
 export PG_BRANCH=${PG_BRANCH}
-export GETZIC=${GETZIC}
-export ZIC=${ZIC}
+
+export SDKROOT=${SDKROOT}
+export DEBUG=${DEBUG}
+
 export CI=${CI}
 export WASI=${WASI}
+
+export PGROOT=/tmp/pglite
+export USE_ICU=${USE_ICU}
+export GETZIC=${GETZIC}
+export ZIC=${ZIC}
 END
 
 

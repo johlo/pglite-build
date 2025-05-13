@@ -1,5 +1,5 @@
---- REL_17_4/configure
-+++ pglite-REL_17_4/configure
+--- REL_17_4_WASM/configure
++++ pglite-REL_17_4_WASM/configure
 @@ -4328,7 +4328,7 @@
    ac_save_c_werror_flag=$ac_c_werror_flag
     ac_c_werror_flag=yes

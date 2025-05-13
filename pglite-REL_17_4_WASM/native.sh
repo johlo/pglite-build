@@ -8,6 +8,8 @@ then
 else
     pushd ${SDKROOT}/src
         git clone https://github.com/pygame-web/w2c2
+        cp -R w2c2/w2c2/w2c2_base.h ${SDKROOT}/native/
+        cp -R w2c2/wasi ${SDKROOT}/native/
     popd
 fi
 
@@ -82,7 +84,7 @@ with open('${WASM2C}.def','w') as defines:
                         continue
 
 print("="*70)
-with open('${WORKSPACE}/pglite-wasm/pglite-modpython.c','r') as source:
+with open('${WORKSPACE}/pglite-${PG_BRANCH}/pglite-modpython.c','r') as source:
     with open('tmp.c','w') as out:
         out.write( source.read().replace('\${WASM2C}','${WASM2C}') )
 END

@@ -108,6 +108,7 @@ ________________________________________________________
             cat > ${PGL_BUILD_NATIVE}/pglite-native.sh <<END
 mkdir -p ${PGL_BUILD_NATIVE} ${PGL_DIST_NATIVE}
 pushd ${PGL_BUILD_NATIVE}
+$(cat /tmp/portable.opts)
     export WORKSPACE=${WORKSPACE}
     export WASM2C=pglite
     export PYBUILD=3.13
@@ -122,7 +123,7 @@ pushd ${PGL_BUILD_NATIVE}
     export PYMAJOR=$PYMAJOR
     export PYMINOR=$PYMINOR
 
-    time ${WORKSPACE}/pglite-wasm/native.sh
+    time ${WORKSPACE}/pglite-${PG_BRANCH}/native.sh
     mv -v *.so ${PGL_DIST_NATIVE}/
 popd
 END

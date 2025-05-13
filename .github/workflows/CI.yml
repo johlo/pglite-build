@@ -23,8 +23,8 @@ jobs:
       CONTAINER_PATH: /tmp/fs
       DEBUG: false
       USE_ICU: false
-      PG_VERSION: 17.5
-      PG_BRANCH: REL_17_5_WASM
+      PG_VERSION: 17.4
+      PG_BRANCH: REL_17_4_WASM
       PGL_BRANCH: main
       ZIC: /usr/sbin/zic
       GETZIC: false
@@ -37,12 +37,12 @@ jobs:
 
       - name: Build postgresql+libpglite wasi with portable-sdk
         run: |
-          WASI=true bash ./ci-17_5_WASM.sh
+          WASI=true bash ./ci-17_4_WASM.sh
 
       - name: Build postgresql+libpglite emscripten node+web with portable-sdk
         run: |
           rm -rf /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
-          WASI=false bash ./ci-17_5_WASM.sh
+          WASI=false bash ./ci-17_4_WASM.sh
 
 #      - name: Build libpglite native with portable-sdk
 #        run: |

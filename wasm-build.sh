@@ -32,6 +32,7 @@ export PG_DIST_EXT="${PG_DIST}/extensions-emsdk"
 export PGL_DIST_JS="${PG_DIST}/pglite-js"
 
 export PGL_DIST_NATIVE="${PG_DIST}/pglite-native"
+export PGL_DIST_C="${PG_DIST}/pglite-native"
 export PGL_DIST_WEB="${PG_DIST}/pglite-web"
 
 export DEBUG=${DEBUG:-true}
