@@ -1,5 +1,5 @@
 #!/bin/bash
-export PGL_BRANCH=samwillis/pglite-socket
+export PGL_BRANCH=main
 export PG_VERSION=${PG_VERSION:-17.5}
 export PG_BRANCH=${PG_BRANCH:-REL_17_5_WASM}
 
@@ -114,7 +114,22 @@ else
         exit 85
     fi
 
-    cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
-    cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
-    mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
+    echo "
+
+ Redist files : $DIST_PATH
+"
+    du -hs $DIST_PATH/*
+
+    if [ -f pglite/packages/pglite/dist/pglite.wasm ]
+    then
+        # docker
+        cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
+        cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
+        mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
+    else
+        # alpine proot
+        cp -f $DIST_PATH/extensions-emsdk/*.tar.gz $PG_DIST_WEB/
+        mv -v $DIST_PATH/pglite-web/pglite.html $PG_DIST_WEB/index.html
+        cp -f $DIST_PATH/pglite-web/pglite.* $PG_DIST_WEB/
+    fi
 fi
