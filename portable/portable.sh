@@ -465,10 +465,16 @@ Fatal: failed to apply patch : $one
 
     if [ -d $CONTAINER_PATH/${SDKROOT} ]
     then
-        echo using cached sdk version from $CONTAINER_PATH/${SDKROOT}
+        echo "
+            * using cached sdk version from $CONTAINER_PATH/${SDKROOT}
+"
     else
         SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
-        echo "setting up sdk $SDK_URL"
+        echo "
+
+            * Setting up emsdk+wasi sdk from $SDK_URL
+
+"
         pushd $CONTAINER_PATH
             mkdir -p tmp
             tmpfile=tmp/python3.13-wasm-sdk-alpine-3.21.tar.lz4
@@ -477,8 +483,10 @@ Fatal: failed to apply patch : $one
             [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
 
-            # unpack wasi sdk
-            tar xf $PORTABLE/wasi-sdk-25.tar.xz $PORTABLE/wasi-sdk-25.0-$(arch)-linux.tar.xz
+            # unpack wasi sdk  (common)
+            tar xf $PORTABLE/wasi-sdk-25.tar.xz
+            # unpack wasi sdk ( binary )
+            tar xf $PORTABLE/wasi-sdk-25.0-$(arch)-linux.tar.xz
 
             # install arch binaries to sdk wasi sdk root
             mv tmp/sdk/wasisdk/wasi-sdk-25.0-$(arch)-linux/* tmp/sdk/wasisdk/upstream/

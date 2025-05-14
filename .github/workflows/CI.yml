@@ -37,17 +37,17 @@ jobs:
 
       - name: Build postgresql+libpglite wasi with portable-sdk
         run: |
-          WASI=true bash ./ci-17_4_WASM.sh
+          WASI=true bash ./ci-alpine-proot.sh
 
-#      - name: Build libpglite native with portable-sdk
-#        run: |
-#          echo "WIP arch:"
-#          bash pglite-REL_17_4_WASM/native.sh
+      - name: Build libpglite native with portable-sdk
+        run: |
+          echo "WIP arch:"
+          WASI=true NATIVE=true bash ./ci-alpine-proot.sh
 
       - name: Build postgresql+libpglite emscripten node+web with portable-sdk
         run: |
-          rm -rf /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
-          WASI=false bash ./ci-17_4_WASM.sh
+          rm -rf /tmp/fs/tmp/pglite/pg.emscripten.installed /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
+          WASI=false bash ./ci-alpine-proot.sh
 
       - name: Upload sdk to Github Releases
         if: github.event_name == 'release'

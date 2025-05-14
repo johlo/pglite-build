@@ -1,7 +1,7 @@
 #!/bin/bash
 export PGL_BRANCH=main
-export PG_VERSION=${PG_VERSION:-17.5}
-export PG_BRANCH=${PG_BRANCH:-REL_17_5_WASM}
+export PG_VERSION=${PG_VERSION:-17.4}
+export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
 
 export CONTAINER_PATH=${CONTAINER_PATH:-/tmp/fs}
 export DEBUG=${DEBUG:-false}
@@ -9,7 +9,7 @@ export USE_ICU=${USE_ICU:-false}
 export GETZIC=${GETZIC:-false}
 export ZIC=${ZIC:-/usr/sbin/zic}
 export CI=${CI:-false}
-
+export SDKROOT=/tmp/sdk
 export WORKSPACE=$(pwd)
 
 export WASI=${WASI:-false}
@@ -43,31 +43,36 @@ else
         # unpatched upstream ( pglite-build case )
         [ -f postgresql-${PG_BRANCH}/configure ] \
          || git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/pygame-web/postgres postgresql-${PG_BRANCH}
+#         || git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
     fi
 fi
 
 
-#if [ -f pglite-wasm/build.sh ]
-#then
-#    echo "using local pglite files"
-#else
-#    mkdir -p pglite-wasm
-#    cp -Rv pglite-${PG_BRANCH}/* pglite-wasm/
-#fi
+if [ -f pglite-wasm/build.sh ]
+then
+    echo "using local pglite files"
+else
+    mkdir -p pglite-wasm
+    cp -Rv pglite-${PG_BRANCH}/* pglite-wasm/
+fi
 
 mkdir -p $CONTAINER_PATH/tmp
 
 #TODO: pglite has .buildconfig in postgres source dir instead.
     cat > $CONTAINER_PATH/tmp/portable.opts <<END
-export DEBUG=${DEBUG}
-export USE_ICU=${USE_ICU}
 export PG_VERSION=${PG_VERSION}
 export PG_BRANCH=${PG_BRANCH}
-export GETZIC=${GETZIC}
-export ZIC=${ZIC}
+
+export SDKROOT=${SDKROOT}
+export DEBUG=${DEBUG}
+
 export CI=${CI}
 export WASI=${WASI}
-export PYBUILD=3.13
+
+export PGROOT=/tmp/pglite
+export USE_ICU=${USE_ICU}
+export GETZIC=${GETZIC}
+export ZIC=${ZIC}
 END
 
 
@@ -114,12 +119,6 @@ else
         echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"
         exit 85
     fi
-
-    echo "
-
- Redist files : $DIST_PATH
-"
-    du -hs $DIST_PATH/*
 
     if [ -f pglite/packages/pglite/dist/pglite.wasm ]
     then

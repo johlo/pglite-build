@@ -65,8 +65,9 @@ else
     BUILD=emscripten
     if $DEBUG
     then
-        export COPTS="-O2 -g3 --no-wasm-opt"
-        export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
+        # clang default to O0 but specifying -O0 may trigger align bug in emsdk
+        export COPTS="-g3 --no-wasm-opt"
+        export LOPTS=${LOPTS:-"-g3 --no-wasm-opt -sASSERTIONS=1"}
     else
         # DO NOT CHANGE COPTS - optimized wasm corruption fix
         export COPTS="-O2 -g3 --no-wasm-opt"
@@ -580,8 +581,14 @@ then
     cp ${PGL_DIST_WEB}/pglite.* pglite/packages/pglite/release/
     pushd pglite
         export HOME=$PG_BUILD
-        [ -f $HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-        . $HOME/.bashrc
+        if [ -f ${PG_BUILD}/share/pnpm/pnpm ]
+        then
+            echo "assuming pnpm install done"
+            source $PG_BUILD/.bashrc
+        else
+            [ -f \$HOME/.local/share/pnpm/pnpm ] || wget -qO- https://get.pnpm.io/install.sh | ENV="$PG_BUILD/.bashrc" SHELL="\$(which bash)" bash -
+        fi
+        export PATH=$PATH:${PG_BUILD}/share/pnpm:\$(pwd)/node_modules/.pnpm/node_modules/.bin
         pnpm install -g npm vitest
         pnpm install
         pnpm run ts:build

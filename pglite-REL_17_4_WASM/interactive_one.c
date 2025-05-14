@@ -162,7 +162,6 @@ static void io_init(bool in_auth, bool out_auth) {
     MyProcPort->canAcceptConnections = CAC_OK;
 #endif
     ClientAuthInProgress = out_auth;
-
     SOCKET_FILE = NULL;
     SOCKET_DATA = 0;
     PDEBUG("\n\n\n# 165: io_init  --------- Ready for CLIENT ---------");
@@ -367,9 +366,9 @@ interactive_one() {
     }
 
 #if PGDEBUG
-    puts("\n\n# 377: interactive_one");
+    puts("\n\n# 369: interactive_one");
     if (notifyInterruptPending)
-        PDEBUG("# 359: has notification !");
+        PDEBUG("# 371: has notification !");
 #endif
 
     // this could be pg_flush in sync mode.
@@ -380,13 +379,18 @@ interactive_one() {
     }
 
     if (!cma_rsize) {
-        puts("# 388: socketfiles"); // prepare reply queue
+        // no cma : reading from file. writing to file.
         if (!SOCKET_FILE) {
             SOCKET_FILE =  fopen(PGS_OLOCK, "w") ;
             MyProcPort->sock = fileno(SOCKET_FILE);
         }
+    } else {
+        // prepare file reply queue, just in case of cma overflow
+        // if unused the file will be kept open till next query.
+        if (!SOCKET_FILE) {
+            SOCKET_FILE =  fopen(PGS_OLOCK, "w") ;
+        }
     }
-
 
     MemoryContextSwitchTo(MessageContext);
     MemoryContextResetAndDeleteChildren(MessageContext);
@@ -400,10 +404,10 @@ interactive_one() {
 	if (send_ready_for_query) {
 
 		if (IsAbortedTransactionBlockState()) {
-			puts("@@@@ TODO 403: idle in transaction (aborted)");
+			PDEBUG("@@@@ TODO 403: idle in transaction (aborted)");
 		}
 		else if (IsTransactionOrTransactionBlock()) {
-			puts("@@@@ TODO 406: idle in transaction");
+			PDEBUG("@@@@ TODO 406: idle in transaction");
 		} else {
 			if (notifyInterruptPending) {
 				ProcessNotifyInterrupt(false);
@@ -425,7 +429,9 @@ interactive_one() {
 /*
  * in cma mode (cma_rsize>0), client call the wire loop itself waiting synchronously for the results
  * in socketfiles mode, the wire loop polls a pseudo socket made from incoming and outgoing files.
- * in repl mode (cma_rsize==0) output is on stdout not cma/socketfiles wire. repl mode is default.
+ * in repl mode (cma_rsize==0) output is on stdout not cma/socketfiles wire.
+ * repl mode is the simpleset mode where stdin is just copied into input buffer (limited by CMA size).
+ * TODO: allow to redirect stdout for fully external repl.
  */
 
     peek = IO[0];
@@ -444,7 +450,7 @@ interactive_one() {
         }
     } else {
         fp = fopen(PGS_IN, "r");
-PDEBUG("# 447:" PGS_IN "\n");
+PDEBUG("# 452:" PGS_IN "\n");
         // read file in socket buffer for SocketBackend to consumme.
         if (fp) {
             fseek(fp, 0L, SEEK_END);
@@ -657,8 +663,9 @@ wire_flush:
 
         if (SOCKET_DATA>0) {
             if (sockfiles) {
-                if (cma_wsize)
+                if (cma_wsize) {
                     puts("ERROR: cma was not flushed before socketfile interface");
+                }
             } else {
                 /* wsize may have increased with previous rfq so assign here */
                 cma_wsize = SOCKET_DATA;
@@ -668,23 +675,27 @@ wire_flush:
                 fclose(SOCKET_FILE);
                 SOCKET_FILE = NULL;
                 SOCKET_DATA = 0;
-                if (cma_wsize)
-                    PDEBUG("# 626: cma and sockfile ???\n");
+
+                if (cma_wsize) {
+                    PDEBUG("# 672: cma and sockfile ???\n");
+                }
+
                 if (sockfiles) {
 #if PGDEBUG
-                    printf("# 629: client:ready -> read(%d) " PGS_OLOCK "->" PGS_OUT"\n", outb);
+                    printf("# 675: client:ready -> read(%d) " PGS_OLOCK "->" PGS_OUT"\n", outb);
 #endif
                     rename(PGS_OLOCK, PGS_OUT);
                 }
             } else {
 #if PGDEBUG
-                printf("\n# 635: in[%d] out[%d] flushed\n", cma_rsize, cma_wsize);
+                printf("\n# 681: in[%d] out[%d] flushed\n", cma_rsize, cma_wsize);
 #endif
                 SOCKET_DATA = 0;
             }
 
         } else {
-            cma_wsize = 0;  PDEBUG("# 680: no socket data");
+            cma_wsize = 0;
+            PDEBUG("# 698: no data, send empty ?");
         }
     } else {
         pg_prompt();
