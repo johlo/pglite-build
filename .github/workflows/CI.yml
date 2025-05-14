@@ -21,7 +21,7 @@ jobs:
     env:
       SDKROOT: /tmp/sdk
       CONTAINER_PATH: /tmp/fs
-      DEBUG: false
+      DEBUG: true
       USE_ICU: false
       PG_VERSION: 17.4
       PG_BRANCH: REL_17_4_WASM
