@@ -66,8 +66,16 @@ else
     if $DEBUG
     then
         # clang default to O0 but specifying -O0 may trigger align bug in emsdk
-        export COPTS="-g3 --no-wasm-opt"
-        export LOPTS=${LOPTS:-"-g3 --no-wasm-opt -sASSERTIONS=1"}
+        if [ -f /alpine ]
+        then
+            # dev debug
+            export COPTS="-O2 -g3 --no-wasm-opt"
+            export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
+        else
+            # docker debug ( exepected to be ide friendly )
+            export COPTS="-g3 --no-wasm-opt"
+            export LOPTS=${LOPTS:-"-g3 --no-wasm-opt -sASSERTIONS=1"}
+        fi
     else
         # DO NOT CHANGE COPTS - optimized wasm corruption fix
         export COPTS="-O2 -g3 --no-wasm-opt"

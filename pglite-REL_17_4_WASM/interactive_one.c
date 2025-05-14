@@ -607,7 +607,7 @@ incoming:
         }
         DoingCommandRead = false;
 
-#if PGDEBUG
+#if 0 // PGDEBUG
         if (!pipelining) {
             printf("# 573: wire=%d 1stchar=%c Q: %s\n", is_wire,  firstchar, inBuf->data);
             force_echo = false;
