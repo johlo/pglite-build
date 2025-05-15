@@ -52,8 +52,7 @@ Folders :
      build : $BUILD_PATH
     target : $PGROOT
   retarget : ${PGL_DIST_C}
-    native : ${PGL_DIST_NATIVE}
-
+    native : ${PGL_DIST_NATIVE} build $(arch) : ${NATIVE}
 
     CPOPTS : $COPTS
     DEBUG  : $DEBUG
@@ -128,11 +127,16 @@ $(cat /tmp/portable.opts)
 popd
 END
             chmod +x ${PGL_BUILD_NATIVE}/pglite-native.sh
-            echo "
+            if $NATIVE
+            then
+                ${PGL_BUILD_NATIVE}/pglite-native.sh
+            else
+                    echo "
 
     * native build here : ${PGL_BUILD_NATIVE}/pglite-native.sh
 
 "
+            fi
         else
             echo "linking libpglite ${BUILD} failed in $(pwd)"
         fi

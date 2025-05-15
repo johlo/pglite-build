@@ -13,11 +13,15 @@ export SDKROOT=/tmp/sdk
 export WORKSPACE=$(pwd)
 
 export WASI=${WASI:-false}
+
+
 if $WASI
 then
     BUILD=wasi
+    export NATIVE=${NATIVE:-false}
 else
     BUILD=emscripten
+    export NATIVE=false
 fi
 
 export BUILD_PATH=${WORKSPACE}/build-${PG_BRANCH}/${BUILD}
@@ -68,6 +72,7 @@ export DEBUG=${DEBUG}
 
 export CI=${CI}
 export WASI=${WASI}
+export NATIVE=${NATIVE}
 
 export PGROOT=/tmp/pglite
 export USE_ICU=${USE_ICU}

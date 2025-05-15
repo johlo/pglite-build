@@ -47,7 +47,7 @@ export PGUSER=${PGUSER:-postgres}
 export WASI=${WASI:-false}
 export WASI_SDK=${WASI_SDK:-25.0}
 export PYBUILD=${PYBUILD:-3.13}
-
+export NATIVE=${NATIVE:-false}
 
 
 if $WASI

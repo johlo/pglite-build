@@ -7,9 +7,8 @@ then
     echo " using local w2c2"
 else
     pushd ${SDKROOT}/src
-        mkdir
         git clone https://github.com/pygame-web/w2c2
-        cp -R w2c2/w2c2/w2c2_base.h ${SDKROOT}/native/
+        cp -R w2c2/w2c2/w2c2_base.h ${SDKROOT}/native/w2c2/
         cp -R w2c2/wasi ${SDKROOT}/native/
     popd
 fi
