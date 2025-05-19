@@ -1,6 +1,7 @@
 #!/bin/bash
 
-apk add clang gcc
+[ -f /alpine ] && /sbin/apk add clang gcc
+
 mkdir -p ${SDKROOT}/src ${SDKROOT}/native
 if [ -d ${SDKROOT}/src/w2c2 ]
 then
@@ -106,7 +107,7 @@ else
     CCOPTS="-fbracket-depth=4096 -Wno-unknown-attributes"
 fi
 
-COMPILE="$CC -fPIC $PYINC $COPTS $CCOPTS -I${SDKROOT}/native -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
+COMPILE="$CC -fPIC $PYINC $COPTS $CCOPTS -I${SDKROOT}/native -I${SDKROOT}/native/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
 PYVER=$($PYTHON -V|cut -d' ' -f2|cut -d. -f1-2)
@@ -140,7 +141,7 @@ $COMPILE
 
 # -I${SDKROOT}/src/w2c2/w2c2
 
-COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/native -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
+COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/native-I${SDKROOT}/native/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
 time $COMPILE
