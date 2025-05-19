@@ -141,7 +141,7 @@ $COMPILE
 
 # -I${SDKROOT}/src/w2c2/w2c2
 
-COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/native-I${SDKROOT}/native/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
+COMPILE="$CC -fPIC -Os -g0 $PYINC $CCOPTS -I${SDKROOT}/native -I${SDKROOT}/native/w2c2 -o ${WASM2C}$PYEXT tmp.c ${SDKROOT}/native/wasi/libw2c2wasi.a $PYLD -lc"
 echo $COMPILE
 
 time $COMPILE
