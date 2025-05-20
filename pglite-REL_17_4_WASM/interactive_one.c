@@ -9,9 +9,32 @@ volatile sigjmp_buf local_sigjmp_buf;
 // track back how many ex raised in steps of the loop until sucessfull clear_error
 volatile int canary_ex = 0;
 
+// track back mode used for last reply   <0 socketfiles , 0== repl , > 0 cma addr
+volatile int channel = 0;
+
 /* TODO : prevent multiple write and write while reading ? */
 volatile int cma_wsize = 0;
-volatile int cma_rsize = 0;  // defined in postgres.c
+volatile int cma_rsize = 0;  // also defined in postgres.c for pqcomm
+volatile bool sockfiles = false; // also defined in postgres.c for pqcomm
+
+__attribute__((export_name("get_buffer_size")))
+int
+get_buffer_size(int fd) {
+    return (CMA_MB * 1024 * 1024) / CMA_FD;
+}
+
+// TODO add query size
+__attribute__((export_name("get_buffer_addr")))
+int
+get_buffer_addr(int fd) {
+    return 1 + ( get_buffer_size(fd) *fd);
+}
+
+__attribute__((export_name("get_channel")))
+int
+get_channel() {
+    return channel;
+}
 
 
 __attribute__((export_name("interactive_read")))
@@ -31,6 +54,8 @@ extern void CleanupTransaction(void);
 extern void ClientAuthentication(Port *port);
 extern FILE* SOCKET_FILE;
 extern int SOCKET_DATA;
+
+
 
 /*
 init sequence
@@ -168,9 +193,6 @@ static void io_init(bool in_auth, bool out_auth) {
 }
 
 
-
-
-volatile bool sockfiles = false;
 volatile bool is_wire = true;
 extern char * cma_port;
 extern void pq_startmsgread(void);
@@ -663,12 +685,14 @@ wire_flush:
 
         if (SOCKET_DATA>0) {
             if (sockfiles) {
+                channel = -1;
                 if (cma_wsize) {
                     puts("ERROR: cma was not flushed before socketfile interface");
                 }
             } else {
                 /* wsize may have increased with previous rfq so assign here */
                 cma_wsize = SOCKET_DATA;
+                channel = cma_rsize + 2;
             }
             if (SOCKET_FILE) {
                 int outb = SOCKET_DATA;

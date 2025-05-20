@@ -31,7 +31,9 @@ export PATH=$PORTABLE:$PATH
 export WORKDIR=${ROOT}
 export CONTAINER_PATH=${CONTAINER_PATH:-/tmp/fs}
 export HOME=/tmp
-export PROOT=${PORTABLE}/proot
+export PROOT=${PORTABLE}/proot.$(arch)
+export ALPINEPROOT_NO_PULSE=true
+
 
 # git would remove empty dirs
 mkdir -p ${WORKDIR}/dist-${PG_BRANCH} ${WORKDIR}/build-${PG_BRANCH}
@@ -193,7 +195,7 @@ __get_container_url() {
 }
 
 __start() {
-	proot -0 rm -rf $CONTAINER_PATH/proc
+	$PROOT -0 rm -rf $CONTAINER_PATH/proc
 	mkdir $CONTAINER_PATH/proc
 
 	# Proceed make fake /proc/version
@@ -469,7 +471,8 @@ Fatal: failed to apply patch : $one
             * using cached sdk version from $CONTAINER_PATH/${SDKROOT}
 "
     else
-        SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
+        # SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
+        SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.61.8/python3.12-wasm-sdk-debian12-$(arch).tar.lz4
         echo "
 
             * Setting up emsdk+wasi sdk from $SDK_URL
@@ -477,9 +480,9 @@ Fatal: failed to apply patch : $one
 "
         pushd $CONTAINER_PATH
             mkdir -p tmp
-            tmpfile=tmp/python3.13-wasm-sdk-alpine-3.21.tar.lz4
+            tmpfile=tmp/python-wasm-sdk-alpine-3.21.tar.lz4
             # local cache
-            [ -f $PORTABLE/python3.13-wasm-sdk-alpine-3.21.tar.lz4 ] && cp -f $PORTABLE/python3.13-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
+            [ -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 ] && cp -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
             [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
 

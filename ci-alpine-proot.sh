@@ -2,6 +2,8 @@
 export PGL_BRANCH=main
 export PG_VERSION=${PG_VERSION:-17.4}
 export PG_BRANCH=${PG_BRANCH:-REL_17_4_WASM}
+export CMA_MB=${CMA_MB:-2}
+
 
 export CONTAINER_PATH=${CONTAINER_PATH:-/tmp/fs}
 export DEBUG=${DEBUG:-false}
@@ -66,6 +68,7 @@ mkdir -p $CONTAINER_PATH/tmp
     cat > $CONTAINER_PATH/tmp/portable.opts <<END
 export PG_VERSION=${PG_VERSION}
 export PG_BRANCH=${PG_BRANCH}
+export CMA_MB=${CMA_MB}
 
 export SDKROOT=${SDKROOT}
 export DEBUG=${DEBUG}

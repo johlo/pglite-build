@@ -16,16 +16,16 @@ on:
 
 jobs:
   build:
-    name: Build WASM Postgres
+    name: Build WASM Postgres and libpglite native (host arch)
     runs-on: ubuntu-24.04
     env:
       SDKROOT: /tmp/sdk
       CONTAINER_PATH: /tmp/fs
       DEBUG: true
       USE_ICU: false
-      PG_VERSION: 17.4
-      PG_BRANCH: REL_17_4_WASM
-      PGL_BRANCH: main
+      PG_VERSION: 17.5
+      PG_BRANCH: REL_17_5_WASM
+      PGL_BRANCH: pmp-p/cmatosf2
       ZIC: /usr/sbin/zic
       GETZIC: false
 
@@ -37,6 +37,8 @@ jobs:
 
       - name: Build postgresql+libpglite wasi with portable-sdk
         run: |
+          sudo apt-get install libtalloc2 lz4
+          rm -rf /tmp/fs/tmp/pglite/pg.wasi.installed /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
           WASI=true bash ./ci-alpine-proot.sh
 
       - name: Build libpglite native with portable-sdk
