@@ -41,12 +41,12 @@ jobs:
           rm -rf /tmp/fs/tmp/pglite/pg.wasi.installed /tmp/fs/tmp/pglite/dumps/dump.vector /tmp/fs/tmp/pglite/share /tmp/fs/tmp/pglite/include /tmp/fs/tmp/pglite/lib
           WASI=true bash ./ci-alpine-proot.sh
 
-      - name: Build libpglite native with portable-sdk
-        run: |
-          echo "WIP arch:"
-          git clone --recursive --no-tags --depth 1 --single-branch --branch main https://github.com/electric-sql/pglite-bindings
-          WASI=true NATIVE=true bash ./ci-alpine-proot.sh
-          ./pglite-bindings/cpython-link-pglite.sh
+#      - name: Build libpglite native with portable-sdk
+#        run: |
+#          echo "WIP arch:"
+#          git clone --recursive --no-tags --depth 1 --single-branch --branch main https://github.com/electric-sql/pglite-bindings
+#          WASI=true NATIVE=true bash ./ci-alpine-proot.sh
+#          ./pglite-bindings/cpython-link-pglite.sh
 
       - name: Build postgresql+libpglite emscripten node+web with portable-sdk
         run: |

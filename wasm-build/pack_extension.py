@@ -43,19 +43,12 @@ def is_extension(path:Path, fullpath:Path):
     if asp.startswith('/lib/postgresql/'):
         if path.suffix == ".so":
             EXTNAME = path.stem
-            if not os.environ.get('OBJDUMP',''):
-#                dumpcmd = f"{PGROOT}/bin/wasm-objdump -x {fullpath.name} > {PGL_DIST_LINK}/dumps/dump.{EXTNAME}"
-#                if pushd(fullpath.parent):
-#                    print(dumpcmd, os.getcwd())
-#                    os.system(dumpcmd)
-#                    popd()
-                dumpcmd = f"{PGROOT}/bin/wasm-objdump -x {fullpath} > {PGL_DIST_LINK}/dumps/dump.{EXTNAME} 2>/dev/null "
-#                print(dumpcmd, os.getcwd())
-                os.system(dumpcmd)
+            dumpcmd = f"{PGROOT}/bin/wasm-objdump -x {fullpath} > {PGL_DIST_LINK}/dumps/dump.{EXTNAME} 2>/dev/null "
+            os.system(dumpcmd)
 
-                os.system(f"OBJDUMP={PGL_DIST_LINK}/dumps/dump.{EXTNAME} python3 wasm-build/getsyms.py imports > {PGL_DIST_LINK}/imports/{EXTNAME}")
-                with open(f"{PGL_DIST_LINK}/imports/{EXTNAME}","r") as f:
-                    SYMBOLS=f.readlines()
+            os.system(f"OBJDUMP={PGL_DIST_LINK}/dumps/dump.{EXTNAME} python3 wasm-build/getsyms.py imports > {PGL_DIST_LINK}/imports/{EXTNAME}")
+            with open(f"{PGL_DIST_LINK}/imports/{EXTNAME}","r") as f:
+                SYMBOLS=f.readlines()
 
         return True
 
