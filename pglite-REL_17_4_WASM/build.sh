@@ -163,8 +163,9 @@ else
 
 
     EXPORTED_FUNCTIONS="_main,_use_wire,_pgl_initdb,_pgl_backend,_pgl_shutdown,_interactive_write,_interactive_read,_interactive_one"
+    EXPORTED_FUNCTIONS="$EXPORTED_FUNCTIONS,_get_channel,_get_buffer_size,_get_buffer_addr"
 
-    EXPORTED_RUNTIME_METHODS="MEMFS,IDBFS,FS,FS_mount,FS_syncfs,FS_analyzePath,setValue,getValue,UTF8ToString,stringToNewUTF8,stringToUTF8OnStack"
+#    EXPORTED_RUNTIME_METHODS="MEMFS,IDBFS,FS,FS_mount,FS_syncfs,FS_analyzePath,setValue,getValue,UTF8ToString,stringToNewUTF8,stringToUTF8OnStack"
     EXPORTED_RUNTIME_METHODS="MEMFS,IDBFS,FS,setValue,getValue,UTF8ToString,stringToNewUTF8,stringToUTF8OnStack"
 
 
@@ -179,7 +180,7 @@ else
 
         # tailored
         LINKER="-sMAIN_MODULE=2 -sEXPORTED_FUNCTIONS=@exports"
-LINKER="-sMAIN_MODULE=1 -sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}"
+# LINKER="-sMAIN_MODULE=1 -sEXPORTED_FUNCTIONS=${EXPORTED_FUNCTIONS}"
     fi
 
     echo "
@@ -233,15 +234,18 @@ ________________________________________________________
     then
         echo "  * linking node raw version of pglite ${PG_BRANCH}"
 
-        COPTS="$LOPTS" ${CC} ${CC_PGLITE} ${PGINC} -o ${PGL_DIST_JS}/pglite-js.js \
+        COPTS="-O2 -g3 --no-wasm-opt" ${CC} ${CC_PGLITE} ${PGINC} -o ${PGL_DIST_JS}/pglite-js.js \
          -sGLOBAL_BASE=${CMA_MB}MB -ferror-limit=1  \
-         -sFORCE_FILESYSTEM=1 $EMCC_NODE \
+         -sFORCE_FILESYSTEM=1 $EMCC_NODE -sMAIN_MODULE=1 -sEXPORT_ALL -sASSERTIONS=0 \
              -sALLOW_TABLE_GROWTH -sALLOW_MEMORY_GROWTH -sERROR_ON_UNDEFINED_SYMBOLS \
              -sEXPORTED_RUNTIME_METHODS=${EXPORTED_RUNTIME_METHODS} \
          ${BUILD_PATH}/pglite.o \
          $LINKER $LIBPGCORE \
          $LINK_ICU \
          -lnodefs.js -lidbfs.js -lxml2 -lz
+
+        ./wasm-build/linkexport.sh
+
 
         echo "  * linking web version of pglite ( with .data initial filesystem, and html repl)"
         COPTS="$LOPTS" ${CC} ${CC_PGLITE} -o ${PGL_DIST_WEB}/pglite.html --shell-file ${WORKSPACE}/pglite-${PG_BRANCH}/repl.html \
