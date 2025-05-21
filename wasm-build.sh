@@ -36,7 +36,7 @@ export PGL_DIST_NATIVE="${PG_DIST}/pglite-native"
 export PGL_DIST_C="${PG_DIST}/pglite-native"
 export PGL_DIST_WEB="${PG_DIST}/pglite-web"
 
-DIST_ALL="${PGROOT}/bin ${PG_DIST} ${PG_DIST_EXT} ${PGL_DIST_JS} ${PGL_DIST_LINK} ${PGL_DIST_WEB}"
+DIST_ALL="${PGROOT}/bin ${PG_DIST} ${PG_DIST_EXT} ${PGL_DIST_JS} ${PGL_DIST_LINK} ${PGL_DIST_WEB} ${PGL_BUILD_NATIVE}"
 
 export DEBUG=${DEBUG:-true}
 
