@@ -25,7 +25,7 @@ jobs:
       USE_ICU: false
       PG_VERSION: 17.4
       PG_BRANCH: REL_17_4_WASM
-      PGL_BRANCH: pmp-p/cmatosf
+      PGL_BRANCH: extra/pg_ivm
       ZIC: /usr/sbin/zic
       GETZIC: false
 

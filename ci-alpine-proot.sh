@@ -96,48 +96,54 @@ else
     git clone --no-tags --depth 1 --single-branch --branch $PGL_BRANCH https://github.com/electric-sql/pglite pglite
 fi
 
+rm -f ${WORKSPACE}/done
 
 # execute prooted build
 ${WORKSPACE}/portable/portable.sh
 
-
-if $LOCAL
+if [ -f ${WORKSPACE}/done ]
 then
-    echo "TODO: start a test server for $PG_DIST_WEB"
-else
-    # gh pages publish
-    PG_DIST_WEB=/tmp/web
-    mkdir -p $PG_DIST_WEB
-    touch $PG_DIST_WEB/.nojekyll
-fi
-
-[ -f $DIST_PATH/pglite.wasi ] &&  cp -vf $DIST_PATH/pglite.wasi $PG_DIST_WEB/
-[ -f $DIST_PATH/pglite-wasi.tar.xz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.xz $PG_DIST_WEB/
-
-
-if $WASI
-then
-    echo "TODO: wasi post link"
-else
-
-    if [ -f ${BUILD_PATH}/libpgcore.a ]
+    if $LOCAL
     then
-        echo "found postgres core static libraries in ${BUILD_PATH}"
+        echo "TODO: start a test server for $PG_DIST_WEB"
     else
-        echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"
-        exit 85
+        # gh pages publish
+        PG_DIST_WEB=/tmp/web
+        mkdir -p $PG_DIST_WEB
+        touch $PG_DIST_WEB/.nojekyll
     fi
 
-    if [ -f pglite/packages/pglite/dist/pglite.wasm ]
+    [ -f $DIST_PATH/pglite.wasi ] &&  cp -vf $DIST_PATH/pglite.wasi $PG_DIST_WEB/
+    [ -f $DIST_PATH/pglite-wasi.tar.xz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.xz $PG_DIST_WEB/
+
+
+    if $WASI
     then
-        # docker
-        cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
-        cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
-        mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
+        echo "TODO: wasi post link"
     else
-        # alpine proot
-        cp -f $DIST_PATH/extensions-emsdk/*.tar.gz $PG_DIST_WEB/
-        mv -v $DIST_PATH/pglite-web/pglite.html $PG_DIST_WEB/index.html
-        cp -f $DIST_PATH/pglite-web/pglite.* $PG_DIST_WEB/
+
+        if [ -f ${BUILD_PATH}/libpgcore.a ]
+        then
+            echo "found postgres core static libraries in ${BUILD_PATH}"
+        else
+            echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"
+            exit 85
+        fi
+
+        if [ -f pglite/packages/pglite/dist/pglite.wasm ]
+        then
+            # docker
+            cp -f pglite/packages/pglite/dist/*.tar.gz $PG_DIST_WEB/
+            cp -f pglite/packages/pglite/dist/pglite.* $PG_DIST_WEB/
+            mv -v pglite/packages/pglite/release/pglite.html $PG_DIST_WEB/index.html
+        else
+            # alpine proot
+            cp -f $DIST_PATH/extensions-emsdk/*.tar.gz $PG_DIST_WEB/
+            mv -v $DIST_PATH/pglite-web/pglite.html $PG_DIST_WEB/index.html
+            cp -f $DIST_PATH/pglite-web/pglite.* $PG_DIST_WEB/
+        fi
     fi
+else
+    echo "build failed"
+    exit 148
 fi
