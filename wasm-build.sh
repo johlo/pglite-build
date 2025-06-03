@@ -211,11 +211,17 @@ echo "
     ----------------------------------------
 "
 env|grep PG |grep -v BUILD
+echo
 env|grep BUILD|grep -v PG
+echo
 env|grep WA
+echo
 env|grep PY
 
 echo "
+    ----------------------------------------
+PATH=${PATH}
+wasmtime=$(which wasmtime)
     ----------------------------------------
 "
 
@@ -450,7 +456,7 @@ fi
 
 # put local zic in the path from build dir
 # put emsdk-shared and also pg_config from the install dir.
-export PATH=${WORKSPACE}/${BUILD_PATH}/bin:${PGROOT}/bin:$PATH
+export PATH=${WORKSPACE}/${BUILD_PATH}/bin:${PGROOT}/bin:${HOST_PREFIX}/bin:$PATH
 
 
 # At this stage, PG should be installed to PREFIX and ready for linking
@@ -473,6 +479,7 @@ then
     "
 else
     mkdir -p ${PGL_DIST_LINK}/dumps ${PGL_DIST_LINK}/imports
+    cd ${WORKSPACE}
 
     if $WASI
     then
@@ -494,52 +501,53 @@ else
  ]"
     fi
 
-    for extdir in postgresql-${PG_BRANCH}/contrib/*
-    do
-        if [ -f ${PGL_DIST_LINK}/dumps/dump.vector ]
-        then
-            echo "
+    if [ -f ${PGL_DIST_LINK}/dumps/dump.vector ]
+    then
+        echo "
 
-    *   NOT rebuilding extensions
+    *   NOT rebuilding extensions ( found ${PGL_DIST_LINK}/dumps/dump.vector )
 
 "
-            break
-        fi
+    else
 
-        if [ -d "$extdir" ]
-        then
-            ext=$(echo -n $extdir|cut -d/ -f3)
-            if echo -n $SKIP|grep -q "$ext "
+        for extdir in postgresql-${PG_BRANCH}/contrib/*
+        do
+
+            if [ -d "$extdir" ]
             then
-                echo skipping extension $ext
-            else
-                echo "
-
-        Building contrib extension : $ext : begin
-"
-                pushd ${BUILD_PATH}/contrib/$ext
-                if PATH=$PREFIX/bin:$PATH emmake make install 2>&1 >/dev/null
+                ext=$(echo -n $extdir|cut -d/ -f3)
+                if echo -n $SKIP|grep -q "$ext "
                 then
-                    echo "
-        Building contrib extension : $ext : end
-"
+                    echo skipping extension $ext
                 else
                     echo "
 
-        Extension $ext from $extdir failed to build
+            Building contrib extension : $ext : begin
 
-"
-                    exit 216
+                    "
+                    pushd ${BUILD_PATH}/contrib/$ext
+                    if PATH=$PREFIX/bin:$PATH emmake make install 2>&1 >/dev/null
+                    then
+                        echo "
+            Building contrib extension : $ext : end
+                    "
+                    else
+                        echo "
+
+            Extension $ext from $extdir failed to build
+
+                        "
+                        exit 216
+                    fi
+                    popd
+
+                    python3 ${PORTABLE}/pack_extension.py 2>&1 >/dev/null
+
                 fi
-                popd
-
-                python3 ${PORTABLE}/pack_extension.py 2>&1 >/dev/null
-
             fi
-        fi
-    done
+        done
 
-
+    fi
 fi
 
 
