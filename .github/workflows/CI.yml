@@ -23,8 +23,8 @@ jobs:
       CONTAINER_PATH: /tmp/fs
       DEBUG: true
       USE_ICU: false
-      PG_VERSION: 17.4
-      PG_BRANCH: REL_17_4_WASM
+      PG_VERSION: 17.5
+      PG_BRANCH: REL_17_5_WASM
       PGL_BRANCH: extra/pg_ivm
       ZIC: /usr/sbin/zic
       GETZIC: false

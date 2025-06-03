@@ -65,27 +65,6 @@ then
         export LOPTS=${LOPTS:-"-Oz -g0"}
     fi
 else
-    if grep -q __emscripten_tempret_get ${SDKROOT}/emsdk/upstream/emscripten/src/library_dylink.js
-    then
-        echo -n
-    else
-        pushd ${SDKROOT}/emsdk
-        patch -p1 <<END
---- emsdk/upstream/emscripten/src/library_dylink.js
-+++ emsdk.fix/upstream/emscripten/src/library_dylink.js
-@@ -724,6 +724,8 @@
-             stubs[prop] = (...args) => {
-               resolved ||= resolveSymbol(prop);
-               if (!resolved) {
-+                if (prop==='getTempRet0')
-+                    return __emscripten_tempret_get(...args);
-                 throw new Error(\`Dynamic linking error: cannot resolve symbol \${prop}\`);
-               }
-               return resolved(...args);
-END
-        popd
-    fi
-
     BUILD=emscripten
     if $DEBUG
     then
@@ -485,8 +464,14 @@ export PATH=${WORKSPACE}/${BUILD_PATH}/bin:${PGROOT}/bin:$PATH
 # ===========================================================================
 # ===========================================================================
 
-if true
+if $WASI
 then
+    echo "
+
+    * WASI: skipping contrib extensions build
+
+    "
+else
     mkdir -p ${PGL_DIST_LINK}/dumps ${PGL_DIST_LINK}/imports
 
     if $WASI
@@ -568,6 +553,7 @@ echo "
 
 
 # only build extra when targeting pglite-wasm .
+rm -f pglite-link.sh
 
 if [ -f ${WORKSPACE}/pglite-${PG_BRANCH}/build.sh ]
 then
@@ -578,36 +564,34 @@ then
 "
     else
 
-        if echo " $*"|grep -q " extra"
-        then
-#            if $CI
+#        if $CI
+#        then
+#            #if [ -d $PREFIX/include/X11 ]
+#            if true
 #            then
-#                #if [ -d $PREFIX/include/X11 ]
-#                if true
-#                then
-#                    echo -n
-#                else
-#                    # install EXTRA sdk
-#                    . /etc/lsb-release
-#                    DISTRIB="${DISTRIB_ID}-${DISTRIB_RELEASE}"
-#                    CIVER=${CIVER:-$DISTRIB}
-#                    SDK_URL=https://github.com/pygame-web/python-wasm-sdk-extra/releases/download/$SDK_VERSION/python3.13-emsdk-sdk-extra-${CIVER}.tar.lz4
-#                    echo "Installing extra lib from $SDK_URL"
-#                    curl -sL --retry 5 $SDK_URL | tar xvP --use-compress-program=lz4 | pv -p -l -s 15000 >/dev/null
-#                    chmod +x ./extra/*.sh
-#                fi
+#                echo -n
+#            else
+#                # install EXTRA sdk
+#                . /etc/lsb-release
+#                DISTRIB="${DISTRIB_ID}-${DISTRIB_RELEASE}"
+#                CIVER=${CIVER:-$DISTRIB}
+#                SDK_URL=https://github.com/pygame-web/python-wasm-sdk-extra/releases/download/$SDK_VERSION/python3.13-emsdk-sdk-extra-${CIVER}.tar.lz4
+#                echo "Installing extra lib from $SDK_URL"
+#                curl -sL --retry 5 $SDK_URL | tar xvP --use-compress-program=lz4 | pv -p -l -s 15000 >/dev/null
+#                chmod +x ./extra/*.sh
 #            fi
+#        fi
 
-            for extra_ext in ./extra/*.sh
-            do
-                LOG=$PG_DIST_EXT/$(basename ${extra_ext}).log
-                echo "======================= ${extra_ext} : $LOG ==================="
+        for extra_ext in ./extra/*.sh
+        do
+            LOG=$PG_DIST_EXT/$(basename ${extra_ext}).log
+            echo "====  ${extra_ext} : $LOG ===="
 
-                ${extra_ext} >  $LOG || exit 552
+            ${extra_ext} > $LOG || exit 613
 
-                python3 wasm-build/pack_extension.py
-            done
-        fi
+            python3 wasm-build/pack_extension.py
+        done
+
 
         # this is for initial emscripten MEMFS
         export PGPRELOAD="\
