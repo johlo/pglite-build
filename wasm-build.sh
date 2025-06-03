@@ -196,6 +196,19 @@ else
 
 
 "
+    pushd ${SDKROOT}
+        # always install wasmtime because wasm-objdump needs it.
+        if [ -f ${SDKROOT}/devices/$(arch)/usr/bin/wasmtime ]
+        then
+            echo "keeping installed wasmtime and wasi binaries"
+        else
+# TODO: window only has a zip archive, better use wasmtime-py instead.
+
+            wget https://github.com/bytecodealliance/wasmtime/releases/download/v33.0.0/wasmtime-v33.0.0-$(arch)-${PLATFORM}.tar.xz \
+             -O-|xzcat|tar xfv -
+            mv -vf $(find wasmtime*|grep /wasmtime$) ${SDKROOT}/devices/$(arch)/usr/bin
+        fi
+    popd
 
     # pass the "kernel" contiguous memory zone size to the C compiler.
     CC_PGLITE="-DCMA_MB=${CMA_MB}"
