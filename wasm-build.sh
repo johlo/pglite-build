@@ -24,19 +24,20 @@ export PGROOT=${PGROOT:-/tmp/pglite}
 export WEBROOT=${WEBROOT:-/tmp/web}
 
 export PG_BUILD=${BUILD:-/tmp/sdk/build}
-export PGL_BUILD_NATIVE=${PG_BUILD}/pglite-native
-export PGL_BUILD_DUMPS=${PG_BUILD}/dumps
+    export PG_BUILD_DUMPS=${PG_BUILD}/dumps
+    export PGL_BUILD_NATIVE=${PG_BUILD}/pglite-native
+
 
 
 export PG_DIST=${DIST:-/tmp/sdk/dist}
-export PG_DIST_EXT=${PG_DIST}/extensions-emsdk
+    export PG_DIST_EXT=${PG_DIST}/extensions-emsdk
 
-export PGL_DIST_JS=${PG_DIST}/pglite-js
-export PGL_DIST_LINK=${PG_DIST}/pglite-link
+    export PGL_DIST_JS=${PG_DIST}/pglite-js
+    export PGL_DIST_LINK=${PG_DIST}/pglite-link
 
-export PGL_DIST_NATIVE=${PG_DIST}/pglite-native
-export PGL_DIST_C=${PG_DIST}/pglite-native
-export PGL_DIST_WEB=${PG_DIST}/pglite-web
+    export PGL_DIST_NATIVE=${PG_DIST}/pglite-native
+    export PGL_DIST_C=${PG_DIST}/pglite-native
+    export PGL_DIST_WEB=${PG_DIST}/pglite-web
 
 
 export DEBUG=${DEBUG:-true}
@@ -94,7 +95,7 @@ export PG_EXTRA=${PG_BUILD}/extra-${BUILD}
 
 
 # default to user writeable paths in /tmp/ .
-DIST_ALL="${PGROOT}/bin ${PG_DIST} ${PG_DIST_EXT} ${PGL_DIST_JS} ${PGL_BUILD_DUMPS} ${PGL_BUILD_NATIVE}"
+DIST_ALL="${PGROOT}/bin ${PG_DIST} ${PG_DIST_EXT} ${PG_BUILD_DUMPS} ${PGL_DIST_JS} ${PGL_BUILD_NATIVE}"
 DIST_ALL="$DIST_ALL ${PGL_DIST_LINK} ${PGL_DIST_NATIVE} ${PGL_DIST_WEB} ${PGL_DIST_C}"
 DIST_ALL="$DIST_ALL ${PG_EXTRA}"
 

@@ -25,7 +25,7 @@ if SECTION.startswith("export"):
     SECTION = "exports"
     WAY = "-> "
 
-    with open(os.environ.get("PGDUMP", "dump.postgres"), "r") as pgdump:
+    with open(os.environ.get("PGDUMP", "/tmp/sdk/dist/pglite-link/exports/pgcore.exports"), "r") as pgdump:
         for line in pgdump.readlines():
             line = line.strip(";\n\r")
             if line:
@@ -37,7 +37,7 @@ else:
     SECTION = "imports"
     WAY = "<- "
 
-with open(os.environ.get("OBJDUMP", "dump.wasm-objdump"), "r") as wasmdump:
+with open(os.environ.get("OBJDUMP", "/tmp/dump.wasm-objdump"), "r") as wasmdump:
     for line in wasmdump.readlines():
         line = line.strip()
 
