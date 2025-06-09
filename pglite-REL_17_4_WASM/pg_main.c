@@ -396,11 +396,6 @@ __attribute__ ((export_name("pgl_backend")))
 #endif
     setenv("PGUSER", PGUSER, 1);
 
-PDEBUG("--------- setting configuration ---------------------");
-	if (!SelectConfigFiles(userDoption, "postgres"))
-        puts("config error");
-    else
-        PDEBUG("cfg ok");
 
 
     AsyncPostgresSingleUserMain(single_argc, single_argv, PGUSER, async_restart);

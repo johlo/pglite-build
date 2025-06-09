@@ -274,6 +274,8 @@ PDEBUG("# 254:"__FILE__);
 PDEBUG("# 257:"__FILE__);
 // if (!async_restart)	/* Parse command-line options. */
 	process_postgres_switches(argc, argv, PGC_POSTMASTER, &dbname);
+
+
 PDEBUG("# 260:"__FILE__);
 	/* Must have gotten a database name, or have a default (the username) */
 	if (dbname == NULL)
@@ -286,13 +288,13 @@ PDEBUG("# 260:"__FILE__);
 							progname)));
 	}
 
-if (async_restart) goto async_db_change;
 PDEBUG("# 273:SelectConfigFiles "__FILE__);
 	/* Acquire configuration parameters */
 	if (!SelectConfigFiles(userDoption, progname)) {
         proc_exit(1);
     }
 PDEBUG("# 278:SelectConfigFiles "__FILE__);
+if (async_restart) goto async_db_change;
 	checkDataDir();
 	ChangeToDataDir();
 

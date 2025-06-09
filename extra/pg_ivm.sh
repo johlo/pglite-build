@@ -1,6 +1,13 @@
 #!/bin/bash
 
+
 . wasm-build/extension.sh
+
+if $WASI
+then
+    echo "wasi not supported for pg_ivm"
+    exit 0
+fi
 
 pushd $PG_EXTRA
     if [ -d pg_ivm ]
