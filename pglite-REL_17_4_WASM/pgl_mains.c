@@ -288,13 +288,14 @@ PDEBUG("# 260:"__FILE__);
 							progname)));
 	}
 
-PDEBUG("# 273:SelectConfigFiles "__FILE__);
+PDEBUG("# 291:SelectConfigFiles "__FILE__);
+if (async_restart) goto async_db_change;
 	/* Acquire configuration parameters */
 	if (!SelectConfigFiles(userDoption, progname)) {
         proc_exit(1);
     }
 PDEBUG("# 278:SelectConfigFiles "__FILE__);
-if (async_restart) goto async_db_change;
+
 	checkDataDir();
 	ChangeToDataDir();
 

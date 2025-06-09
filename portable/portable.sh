@@ -473,16 +473,16 @@ Fatal: failed to apply patch : $one
     else
         # SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4
         SDK_URL=https://github.com/pygame-web/portable-sdk/releases/download/3.1.61.8/python3.12-wasm-sdk-debian12-$(arch).tar.lz4
-        echo "
-
-            * Setting up emsdk+wasi sdk from $SDK_URL
-
-"
         pushd $CONTAINER_PATH
             mkdir -p tmp
             tmpfile=tmp/python-wasm-sdk-alpine-3.21.tar.lz4
             # local cache
-            [ -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 ] && cp -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
+            if [ -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 ]
+            then
+                SDK_URL=$PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4
+                cp -f $PORTABLE/python-wasm-sdk-alpine-3.21.tar.lz4 $tmpfile
+            fi
+
             [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
 
@@ -508,6 +508,12 @@ Fatal: failed to apply patch : $one
                 fi
             fi
         popd
+        echo "
+
+            * Done setup emsdk+wasi sdk from $SDK_URL
+
+"
+        read
     fi
 
 

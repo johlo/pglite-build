@@ -328,6 +328,7 @@ CREATE TABLE IF NOT EXISTS test (
 `
                     break
 
+/* pg_ivm
                 case 3:
                     data = `
 CREATE EXTENSION IF NOT EXISTS pg_ivm;
@@ -357,6 +358,9 @@ INSERT INTO test VALUES (44);
 SELECT * FROM myview;
 `
                     break
+
+*/
+
 
 
 /*
@@ -457,7 +461,7 @@ ALTER TABLE test2 OWNER TO ${PGUSER};
         async function delayed_init() {
             await Module.load_package("vector", "vector.tar.gz")
             await Module.load_package("uuid-ossp", "uuid-ossp.tar.gz")
-            await Module.load_package("pg_ivm", "pg_ivm.tar.gz")
+//            await Module.load_package("pg_ivm", "pg_ivm.tar.gz")
 
             await Module.load_package("pg_stat_statements", "pg_stat_statements.tar.gz")
 
