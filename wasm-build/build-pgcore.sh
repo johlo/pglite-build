@@ -365,6 +365,8 @@ END
         if $WASI
         then
             cp src/backend/postgres.wasi $PGROOT/bin/ || exit 365
+            # make pg_config runnable via wasmtime
+            cp ${PGROOT}/bin/wasm-objdump ${PGROOT}/bin/pg_config
         else
             if $DEBUG
             then

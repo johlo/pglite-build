@@ -160,6 +160,10 @@ pushd ${SDKROOT}
     if ${WASI}
     then
         . wasisdk/wasisdk_env.sh
+        if ${PORTABLE}/sdk.sh
+        then
+            echo "$PORTABLE : sdk check passed (wasi)"
+        fi
     else
         if which emcc
         then

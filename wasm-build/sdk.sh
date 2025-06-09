@@ -1,8 +1,56 @@
 #!/bin/bash
 
+WASI=${WASI:-false}
 SDKROOT=${SDKROOT:-/tmp/sdk}
 mkdir -p ${SDKROOT}
 
+
+# always install wasmtime because wasm-objdump needs it.
+if [ -f ${SDKROOT}/devices/$(arch)/usr/bin/wasmtime ]
+then
+    echo "keeping installed wasmtime and wasi binaries"
+else
+# TODO: window only has a zip archive, better use wasmtime-py instead.
+    export PLATFORM=$($SYS_PYTHON -E -c "print(__import__('sys').platform)")
+    echo "
+
+    ! wasmtime required ! installing from github release wasmtime-v33.0.0-$(arch)-${PLATFORM}.tar.xz
+
+    "
+
+
+    wget https://github.com/bytecodealliance/wasmtime/releases/download/v33.0.0/wasmtime-v33.0.0-$(arch)-${PLATFORM}.tar.xz \
+     -O-|xzcat|tar xfv -
+    mv -vf $(find wasmtime*|grep /wasmtime$) ${SDKROOT}/devices/$(arch)/usr/bin
+fi
+
+if $WASI
+then
+    if [ -f ${WASI_SYSROOT}/extra ]
+    then
+        echo -n
+    else
+        echo "
+
+   * add wasi third parties to ${WASI_SYSROOT}
+
+        "
+        mkdir -p ${WASI_SYSROOT}
+        pushd ${WASI_SYSROOT}
+            VMLABS="https://github.com/vmware-labs/webassembly-language-runtimes/releases/download"
+            wget -q "${VMLABS}/libs%2Flibpng%2F1.6.39%2B20230629-ccb4cb0/libpng-1.6.39-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
+            wget -q "${VMLABS}/libs%2Fzlib%2F1.2.13%2B20230623-2993864/libz-1.2.13-wasi-sdk-20.0.tar.gz"  -O-| tar xfz -
+            wget -q "${VMLABS}/libs%2Fsqlite%2F3.42.0%2B20230623-2993864/libsqlite-3.42.0-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
+            wget -q "${VMLABS}/libs%2Flibxml2%2F2.11.4%2B20230623-2993864/libxml2-2.11.4-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
+            wget -q "${VMLABS}/libs%2Fbzip2%2F1.0.8%2B20230623-2993864/libbzip2-1.0.8-wasi-sdk-20.0.tar.gz"  -O-| tar xfz -
+            wget -q "${VMLABS}/libs%2Flibuuid%2F1.0.3%2B20230623-2993864/libuuid-1.0.3-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
+        popd
+        touch ${WASI_SYSROOT}/extra
+    fi
+    exit 0
+fi
+
+# this one is critical for release mode
 if grep -q __emscripten_tempret_get ${SDKROOT}/emsdk/upstream/emscripten/src/library_dylink.js
 then
     echo -n
@@ -23,7 +71,6 @@ else
 END
     popd
 fi
-
 
 
 if ${NO_SDK_CHECK:-false}
@@ -156,34 +203,4 @@ fi
 cat $SDKROOT/VERSION
 
 
-if $WASI
-then
-    # always install wasmtime because wasm-objdump needs it.
-    if [ -f ${SDKROOT}/devices/$(arch)/usr/bin/wasmtime ]
-    then
-        echo "keeping installed wasmtime and wasi binaries"
-    else
-# TODO: window only has a zip archive, better use wasmtime-py instead.
-
-        wget https://github.com/bytecodealliance/wasmtime/releases/download/v33.0.0/wasmtime-v33.0.0-$(arch)-${PLATFORM}.tar.xz \
-         -O-|xzcat|tar xfv -
-        mv -vf $(find wasmtime*|grep /wasmtime$) ${SDKROOT}/devices/$(arch)/usr/bin
-    fi
-
-    if [ -f ${WASI_SYSROOT}/extra ]
-    then
-        echo -n
-    else
-        pushd ${WASI_SYSROOT}
-            VMLABS="https://github.com/vmware-labs/webassembly-language-runtimes/releases/download"
-            wget -q "${VMLABS}/libs%2Flibpng%2F1.6.39%2B20230629-ccb4cb0/libpng-1.6.39-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
-            wget -q "${VMLABS}/libs%2Fzlib%2F1.2.13%2B20230623-2993864/libz-1.2.13-wasi-sdk-20.0.tar.gz"  -O-| tar xfz -
-            wget -q "${VMLABS}/libs%2Fsqlite%2F3.42.0%2B20230623-2993864/libsqlite-3.42.0-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
-            wget -q "${VMLABS}/libs%2Flibxml2%2F2.11.4%2B20230623-2993864/libxml2-2.11.4-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
-            wget -q "${VMLABS}/libs%2Fbzip2%2F1.0.8%2B20230623-2993864/libbzip2-1.0.8-wasi-sdk-20.0.tar.gz"  -O-| tar xfz -
-            wget -q "${VMLABS}/libs%2Flibuuid%2F1.0.3%2B20230623-2993864/libuuid-1.0.3-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
-        popd
-        touch ${WASI_SYSROOT}/extra
-    fi
-fi
 
