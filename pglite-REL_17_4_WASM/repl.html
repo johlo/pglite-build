@@ -137,7 +137,11 @@ async function pgl_conf(vm, kv) {
 
         vm.FS.unlink(vm.PGDATA + "/postgresql.conf")
         vm.FS.writeFile( vm.PGDATA + "/postgresql.conf", lines.join("\n") )
-        vm.FS.syncfs(false, (e) => { if (e) console.error("pgl_conf:", e)})
+        try {
+            vm.FS.syncfs(false, (e) => { /* if (e) console.error("pgl_conf:", e) */ })
+        } catch (x) {
+            console.error("pgl_conf: exception", x)
+        }
 
         console.log("Config file written at :", vm.PGDATA + "/postgresql.conf" )
     }
@@ -305,7 +309,9 @@ pglite.wasi + filesystem: <a href=pglite-wasi.tar.xz download>Download file</a>
             return text_codec.decode(  new Uint8Array(ary) )
         }
         window.b_utf8 = b_utf8
+
 //  /tmp/pglite/base/postgresql.conf
+
         function test_drive(step) {
             var data = null
             switch (test_step) {

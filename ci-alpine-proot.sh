@@ -96,12 +96,12 @@ else
     git clone --no-tags --depth 1 --single-branch --branch $PGL_BRANCH https://github.com/electric-sql/pglite pglite
 fi
 
-rm -f ${WORKSPACE}/done
+rm -f ${WORKSPACE}/${BUILD}.done
 
 # execute prooted build
 ${WORKSPACE}/portable/portable.sh
 
-if [ -f ${WORKSPACE}/done ]
+if [ -f ${WORKSPACE}/${BUILD}.done ]
 then
     if $LOCAL
     then

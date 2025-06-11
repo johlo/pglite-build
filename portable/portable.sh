@@ -513,7 +513,6 @@ Fatal: failed to apply patch : $one
             * Done setup emsdk+wasi sdk from $SDK_URL
 
 "
-        read
     fi
 
 

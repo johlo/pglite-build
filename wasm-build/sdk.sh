@@ -4,6 +4,10 @@ WASI=${WASI:-false}
 SDKROOT=${SDKROOT:-/tmp/sdk}
 mkdir -p ${SDKROOT}
 
+if [ -f /alpine ]
+then
+    cp -f /usr/bin/node ${SDKROOT}/emsdk/node/*.*.*/bin/
+fi
 
 # always install wasmtime because wasm-objdump needs it.
 if [ -f ${SDKROOT}/devices/$(arch)/usr/bin/wasmtime ]
