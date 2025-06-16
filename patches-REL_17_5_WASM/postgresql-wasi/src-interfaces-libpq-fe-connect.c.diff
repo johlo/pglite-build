@@ -1,0 +1,143 @@
+--- REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
++++ pglite-REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
+@@ -2480,7 +2480,7 @@
+ 	int			timeout = 0;
+ 	int			last_whichhost = -2;	/* certainly different from whichhost */
+ 	int			last_whichaddr = -2;	/* certainly different from whichaddr */
+-PDEBUG("# 2420: connectDBComplete Begin "  __FILE__ );
++PDEBUG("# 2483: connectDBComplete Begin "  __FILE__ "\r\n");
+ 	if (conn == NULL || conn->status == CONNECTION_BAD)
+ 		return 0;
+ 
+@@ -2492,6 +2492,7 @@
+ 		if (!pqParseIntParam(conn->connect_timeout, &timeout, conn,
+ 							 "connect_timeout"))
+ 		{
++PDEBUG("# 2495: CONNECTION_BAD\r\n");
+ 			/* mark the connection as bad to report the parsing failure */
+ 			conn->status = CONNECTION_BAD;
+ 			return 0;
+@@ -2516,7 +2517,7 @@
+ 			last_whichhost = conn->whichhost;
+ 			last_whichaddr = conn->whichaddr;
+ 		}
+-printf("# 2476: switch (%d) PGRES_POLLING_OK=%d PGRES_POLLING_READING=%d PGRES_POLLING_WRITING=%d\n", flag, PGRES_POLLING_OK, PGRES_POLLING_READING,PGRES_POLLING_WRITING);
++printf("# 2519: switch (%d) PGRES_POLLING_OK=%d PGRES_POLLING_READING=%d PGRES_POLLING_WRITING=%d\r\n", flag, PGRES_POLLING_OK, PGRES_POLLING_READING,PGRES_POLLING_WRITING);
+ if(!flag) abort();
+ 		/*
+ 		 * Wait, if necessary.  Note that the initial state (just after
+@@ -2528,7 +2529,7 @@
+ 				return 1;		/* success! */
+ 
+ 			case PGRES_POLLING_READING:
+-#if !defined(__wasi__)
++#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
+ 				ret = pqWaitTimed(1, 0, conn, end_time);
+ 				if (ret == -1)
+ 				{
+@@ -2550,7 +2551,11 @@
+ 				break;
+ 
+ 			default:
+-PDEBUG("# 2508: CONNECTION_BAD");
++PDEBUG("# 2553: CONNECTION_BAD\r\n");
++#if defined(__EMSCRIPTEN__)
++conn->status = CONNECTION_CHECK_TARGET;
++return 1;
++#endif
+ 				/* Just in case we failed to set it in PQconnectPoll */
+ 				conn->status = CONNECTION_BAD;
+ 				return 0;
+@@ -2558,12 +2563,17 @@
+ 
+ 		if (ret == 1)			/* connect_timeout elapsed */
+ 		{
+-PDEBUG("# 2535: timeout !");
++PDEBUG("# 2561: timeout !\r\n");
+ 			/*
+ 			 * Give up on current server/address, try the next one.
+ 			 */
++#if defined(__EMSCRIPTEN__)
++PDEBUG("# 2566: FATAL !\r\n");
++    return 0;
++#else
+ 			conn->try_next_addr = true;
+ 			conn->status = CONNECTION_NEEDED;
++#endif
+ 		}
+ 
+ 		/*
+@@ -2618,13 +2628,13 @@
+ 	/* Get the new data */
+ 	switch (conn->status)
+ 	{
+-printf("# 2577: conn->status(%d)\n", conn->status );
++printf("# 2626: conn->status(%d)\r\n", conn->status );
+ 			/*
+ 			 * We really shouldn't have been polled in these two cases, but we
+ 			 * can handle it.
+ 			 */
+ 		case CONNECTION_BAD:
+-PDEBUG("# FSM2580: CONNECTION_BAD");
++PDEBUG("# FSM2580: CONNECTION_BAD\r\n");
+ 			return PGRES_POLLING_FAILED;
+ 		case CONNECTION_OK:
+ 			return PGRES_POLLING_OK;
+@@ -2638,14 +2648,14 @@
+ 			{
+ 				/* Load waiting data */
+ #if defined(__wasi__)
+-    puts("# 2597: CONNECTION_CHECK_STANDBY -> ?????");
++    puts("# 2646: CONNECTION_CHECK_STANDBY -> ?????\r\n");
+ 				int			n = pqReadData(conn);
+     if (!n) {
+         puts("YIELD!");
+         sched_yield();
+     }
+ 
+-    printf("# 2604: pqReadData-> %d\n", n);
++    printf("# 2653: pqReadData-> %d\r\n", n);
+ #else
+ int			n = pqReadData(conn);
+ #endif
+@@ -2677,11 +2687,11 @@
+ 
+ keep_going:						/* We will come back to here until there is
+ 								 * nothing left to do. */
+-PDEBUG("# 2615: keep_going");
++PDEBUG("# 2685: keep_going\r\n");
+ 	/* Time to advance to next address, or next host if no more addresses? */
+ 	if (conn->try_next_addr)
+ 	{
+-PDEBUG("# 2615: keep_going -> try_next_addr ");
++PDEBUG("# 2689: keep_going -> try_next_addr\r\n");
+ 		if (conn->whichaddr < conn->naddr)
+ 		{
+ 			conn->whichaddr++;
+@@ -2696,7 +2706,7 @@
+ 	/* Time to advance to next connhost[] entry? */
+ 	if (conn->try_next_host)
+ 	{
+-PDEBUG("# 2615: keep_going -> try_next_host ");
++PDEBUG("# 2704: keep_going -> try_next_host\r\n");
+ 		pg_conn_host *ch;
+ 		struct addrinfo hint;
+ 		struct addrinfo *addrlist;
+@@ -3233,7 +3243,7 @@
+ 
+ 		case CONNECTION_STARTED:
+ 			{
+-puts("# 3168: CONNECTION_STARTED");
++puts("# 3241: CONNECTION_STARTED\r\n");
+ 				socklen_t	optlen = sizeof(optval);
+ 
+ 				/*
+@@ -3245,7 +3255,7 @@
+ 				 * Now check (using getsockopt) that there is not an error
+ 				 * state waiting for us on the socket.
+ 				 */
+-#if !defined(__wasi__)
++#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
+ 				if (getsockopt(conn->sock, SOL_SOCKET, SO_ERROR,
+ 							   (char *) &optval, &optlen) == -1)
+ 				{

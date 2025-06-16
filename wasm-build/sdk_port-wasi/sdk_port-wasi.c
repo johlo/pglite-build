@@ -392,18 +392,18 @@ volatile FILE *fd_FILE = NULL;
 // default fd is stderr
 int socket(int domain, int type, int protocol) {
 #if 0
-    printf("# 404 : domain =%d type=%d proto=%d -> FORCE FD to 3 \n", domain , type, protocol);
+    printf("# 395 : domain =%d type=%d proto=%d -> FORCE FD to 3 \n", domain , type, protocol);
     return 3;
 #else
-    printf("# 408 : domain =%d type=%d proto=%d\n", domain , type, protocol);
+    printf("# 398 : domain =%d type=%d proto=%d\n", domain , type, protocol);
 #endif
     if (domain|AF_UNIX) {
         fd_FILE = fopen(PGS_ILOCK, "w");
         if (fd_FILE) {
             fd_out = fileno(fd_FILE);
-            printf("# 414: AF_UNIX sock=%d (fd_sock write) FILE=%s\n", fd_out, PGS_ILOCK);
+            printf("# 404: AF_UNIX sock=%d (fd_sock write) FILE=%s\n", fd_out, PGS_ILOCK);
         } else {
-            printf("# 416: AF_UNIX ERROR OPEN (w/w+) FILE=%s\n", PGS_ILOCK);
+            printf("# 406: AF_UNIX ERROR OPEN (w/w+) FILE=%s\n", PGS_ILOCK);
             abort();
         }
     }
@@ -412,11 +412,11 @@ int socket(int domain, int type, int protocol) {
 
 int connect(int socket, void *address, socklen_t address_len) {
 #if 1
-    puts("# 425: connect STUB");
+    puts("# 415: connect STUB");
     //fd_out = 3;
     return 0;
 #else
-    puts("# 429: connect EINPROGRESS");
+    puts("# 419: connect EINPROGRESS");
     errno = EINPROGRESS;
     return -1;
 #endif
@@ -425,7 +425,7 @@ int connect(int socket, void *address, socklen_t address_len) {
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, void *dest_addr, socklen_t addrlen) {
     int sent = write( fd_out, buf, len);
 
-    printf("# 438: send/sendto(%d ?= %ld )/%zu sockfd=%d fno=%d fd_out=%d)\n", sent, ftell(fd_FILE), len, sockfd, fileno(fd_FILE), fd_out);
+    printf("# 428: send/sendto(%d ?= %ld )/%zu sockfd=%d fno=%d fd_out=%d)\n", sent, ftell(fd_FILE), len, sockfd, fileno(fd_FILE), fd_out);
     fd_queue+=sent;
     return sent;
 }
@@ -438,32 +438,32 @@ volatile bool web_warned = false;
 
 void sock_flush() {
     if (fd_queue) {
-        printf(" -- 451 sockflush : AIO YIELD, expecting %s filled on return --\n", PGS_OUT);
+        printf(" -- 441 sockflush : AIO YIELD, expecting %s filled on return --\n", PGS_OUT);
         if (!fd_FILE) {
             if (!web_warned) {
-                puts("# 454: WARNING: fd_FILE not set but queue not empty, assuming web");
+                puts("# 444: WARNING: fd_FILE not set but queue not empty, assuming web");
                 web_warned = true;
             }
 
          } else {
-            printf("#       459: SENT=%ld/%d fd_out=%d fno=%d\n", ftell(fd_FILE), fd_queue, fd_out, fileno(fd_FILE));
+            printf("#       449: SENT=%ld/%d fd_out=%d fno=%d\n", ftell(fd_FILE), fd_queue, fd_out, fileno(fd_FILE));
             fclose(fd_FILE);
             rename(PGS_ILOCK, PGS_IN);
 //freopen(PGS_ILOCK, "w+", fd_FILE);
             fd_FILE = fopen(PGS_ILOCK, "w");
             fd_out = fileno(fd_FILE);
-            printf("#       465: fd_out=%d fno=%d\n", fd_out, fileno(fd_FILE));
+            printf("#       455: fd_out=%d fno=%d\n", fd_out, fileno(fd_FILE));
         }
         fd_queue = 0;
         sched_yield();
         return;
     }
 
-    printf(" -- 472 sockflush[%d] : NO YIELD --\n",stage);
+    printf(" -- 462 sockflush[%d] : NO YIELD --\n",stage);
 
     // limit inf loops
     if (stage++ > 1024) {
-        puts("# 476 sock_flush : busy looping ?");
+        puts("# 466 sock_flush : busy looping ?");
         abort();
     }
 }
