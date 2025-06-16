@@ -334,6 +334,13 @@ CREATE TABLE IF NOT EXISTS test (
 `
                     break
 
+                case 3:
+                    data = `
+CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
+`
+                    break
+
+
 /* pg_ivm
                 case 3:
                     data = `
@@ -466,7 +473,8 @@ ALTER TABLE test2 OWNER TO ${PGUSER};
 
         async function delayed_init() {
             await Module.load_package("vector", "vector.tar.gz")
-            await Module.load_package("uuid-ossp", "uuid-ossp.tar.gz")
+            //await Module.load_package("uuid-ossp", "uuid-ossp.tar.gz")
+            await Module.load_package("uuid-ossp", "pg_uuidv7.tar.gz")
 //            await Module.load_package("pg_ivm", "pg_ivm.tar.gz")
 
             await Module.load_package("pg_stat_statements", "pg_stat_statements.tar.gz")
@@ -763,6 +771,7 @@ SET ROLE ${PGUSER};
                         return
 
                     case "cat":
+                        console.warn(`cat "${arg}"`)
                         for (const line of os.codec.decode(vm.FS.readFile(arg)).split("\n")) {
                             vm.vt.xterm.write( line + "\r\n" )
                         }
