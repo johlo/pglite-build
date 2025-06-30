@@ -78,13 +78,15 @@ else
             export LOPTS=${LOPTS:-"-O2 -g3 --no-wasm-opt -sASSERTIONS=1"}
 
         else
-            # docker debug ( exepected to be ide friendly )
+            # docker debug ( expected to be ide friendly )
             export COPTS="-g3 --no-wasm-opt"
             export LOPTS=${LOPTS:-"-g3 --no-wasm-opt -sASSERTIONS=1"}
+# TODO: test those
+export COPTS="-O0 -sDEMANGLE_SUPPORT=1 -frtti -gsource-map --no-wasm-opt"
+export LOPTS=${LOPTS:-"-O0 -sDEMANGLE_SUPPORT=1 -frtti -gsource-map --no-wasm-opt -sASSERTIONS=1"}
+
         fi
 
-        export COPTS="-O2 -sDEMANGLE_SUPPORT=1 -frtti -g4 --no-wasm-opt"
-        export LOPTS=${LOPTS:-"-O1 -sDEMANGLE_SUPPORT=1 -frtti -g4 --no-wasm-opt -sASSERTIONS=1"}
 
     else
         # DO NOT CHANGE COPTS - optimized wasm corruption fix
@@ -182,8 +184,7 @@ pushd ${SDKROOT}
         then
             echo "$PORTABLE : sdk check passed (emscripten)"
         else
-            echo emsdk failed
-            exit 181
+            echo "emsdk failed";  exit $LINENO
         fi
 
 
@@ -207,6 +208,13 @@ popd
 # preprocessed source.
 # nb: wasi does not use -sGLOBAL_BASE
 export CC_PGLITE="-DPYDK=1 -DPG_PREFIX=${PGROOT} -I${PGROOT}/include -DCMA_MB=${CMA_MB}"
+
+if $WASI
+then
+    export WASI_CFLAGS="-D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL --target=wasm32-wasip1 -D__wasilibc_use_wasip1" # -mllvm -wasm-enable-sjlj"
+    export CC_PGLITE="$WASI_CFLAGS $CC_PGLITE"
+fi
+
 
 
 
@@ -282,8 +290,7 @@ END
             echo "
     ERROR: $(which wasm-objdump) not working properly ( is wasmtime ok ? )
 
-"
-            exit 281
+            "; exit $LINENO
         fi
     fi
 fi
@@ -311,7 +318,7 @@ else
 #define I_PGDEBUG
 #define WASM_USERNAME "$PGUSER"
 #define PGDEBUG 1
-#define PDEBUG(string) fputs(string, stderr)
+#define PDEBUG(string) { fputs(string, stderr); fputs("\r\n", stderr); }
 #define JSDEBUG(string) {EM_ASM({ console.log(string); });}
 #define ADEBUG(string) { PDEBUG(string); JSDEBUG(string) }
 #endif
@@ -440,7 +447,14 @@ export PATH=${WORKSPACE}/${BUILD_PATH}/bin:${PGROOT}/bin:${HOST_PREFIX}/bin:$PAT
 #                             EXTENSIONS
 
 cd ${WORKSPACE}
-. ./wasm-build/build-ext.sh
+if ./wasm-build/build-ext.sh
+then
+    echo "
+    contrib extensions built
+    "
+else
+    echo "some contrib extensions failed to build"; exit $LINENO
+fi
 
 # ===========================================================================
 # ===========================================================================
@@ -529,13 +543,12 @@ then
         else
             if $CI
             then
-                ./runtests.sh || exit 515
+                ./runtests.sh || exit 539
             fi
         fi
     fi
 else
-    echo "pglite linking failed"
-    exit 657
+    echo "pglite linking failed";   exit 544
 fi
 END
         chmod +x pglite-link.sh
@@ -553,7 +566,7 @@ END
                 done
             fi
         else
-            exit 539
+            exit $LINENO
         fi
     fi
 else

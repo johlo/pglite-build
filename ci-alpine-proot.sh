@@ -106,6 +106,7 @@ then
     if $LOCAL
     then
         echo "TODO: start a test server for $PG_DIST_WEB"
+        cp -vf ${CONTAINER_PATH}/tmp/pglite/bin/pg_dump.wasi ${PG_DIST_WEB}/bin/pg_dump.wasm
     else
         # gh pages publish
         PG_DIST_WEB=/tmp/web
@@ -126,8 +127,7 @@ then
         then
             echo "found postgres core static libraries in ${BUILD_PATH}"
         else
-            echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"
-            exit 85
+            echo "failed to build libpgcore static at ${BUILD_PATH}/libpgcore.a"; exit $LINENO
         fi
 
         if [ -f pglite/packages/pglite/dist/pglite.wasm ]
@@ -144,6 +144,5 @@ then
         fi
     fi
 else
-    echo "build failed"
-    exit 148
+    echo "build failed"; exit $LINENO
 fi

@@ -23,4 +23,3 @@ pushd $PG_EXTRA/pg_uuidv7
     PG_CONFIG=${PGROOT}/bin/pg_config emmake make OPTFLAGS="" install || exit 25
 popd
 
-read

@@ -270,10 +270,11 @@ PDEBUG("# 259: EndImplicitTransactionBlock: pending");
     		    send_ready_for_query = true;
             }
 #if defined(PGL_LOOP)
-if (notifyInterruptPending)
+if (notifyInterruptPending) {
     PDEBUG("# 267: EndImplicitTransactionBlock: NOTIFICATION");
-else
+} else {
     PDEBUG("# 269: EndImplicitTransactionBlock: ok");
+}
 #endif
 		    break;
 
@@ -306,10 +307,11 @@ else
 		     * it will fail to be called during other backend-shutdown
 		     * scenarios.
 		     */
-if (sf_connected)
+if (sf_connected) {
     sf_connected--;
-else
+} else {
     PDEBUG("ERROR: more exits than connections");
+}
 PDEBUG("# 251:proc_exit/skip and repl stop"); //proc_exit(0);
             is_repl = false;
             ignore_till_sync = false;

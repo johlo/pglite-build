@@ -1,13 +1,7 @@
 #pragma once
 
-// to override chmod()
-#include <sys/stat.h>
 
-extern int pg_chmod(const char * path, int mode_t);
-// initdb chmod is not supported by wasi, so just don't use it anywhere
-// #if defined(__wasi__)
-#define chmod(path, mode) pg_chmod(path, mode)
-//#endif
+#include <sys/stat.h>
 
 
 #include <stdio.h> // FILE

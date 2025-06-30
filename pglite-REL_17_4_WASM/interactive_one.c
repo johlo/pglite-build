@@ -459,7 +459,7 @@ interactive_one() {
     peek = IO[0];
     packetlen = cma_rsize;
 
-    if (cma_rsize) {
+    if (packetlen) {
         sockfiles = false;
         if (!is_repl) {
             whereToSendOutput = DestRemote;
@@ -472,7 +472,7 @@ interactive_one() {
         }
     } else {
         fp = fopen(PGS_IN, "r");
-PDEBUG("# 452:" PGS_IN "\n");
+puts("# 475:" PGS_IN "\r\n");
         // read file in socket buffer for SocketBackend to consumme.
         if (fp) {
             fseek(fp, 0L, SEEK_END);

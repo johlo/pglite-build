@@ -77,21 +77,6 @@ extern unsigned int alarm(unsigned int seconds);
 // ====================================================
 
 
-#include <setjmp.h>
-
-static int
-sigsetjmp(sigjmp_buf env, int savesigs) {
-//    puts("# 120: sigsetjmp");
-    return 0;
-}
-
-static void
-siglongjmp(sigjmp_buf env, int val) {
-    puts("# 120: siglongjmp");
-}
-
-
-
 // WIP :
 
 #include <unistd.h>
@@ -139,10 +124,7 @@ gai_strerror(int errcode) {
 }
 
 
-static int
-getrusage(int who, struct rusage *usage) {
-    return -1;
-}
+
 
 // WIP: semaphores here
 // ==================================================================
@@ -193,11 +175,6 @@ shm_unlink(const char *name) {
 
 #endif
 
-// initdb chmod
-#if defined(__wasi__)
-    #define chmod(...) 0
-#endif
-
 
 
 #define system(command) system_wasi(command)
@@ -225,6 +202,7 @@ extern void sock_flush();
 // TODO: socket here
 // ==================================================================
 
+/*
 #include <sys/socket.h>
 
 extern ssize_t sdk_recv(int sockfd, void *buf, size_t len, int flags);
@@ -248,10 +226,6 @@ getgrnam(const char *_Nullable name) {
     return NULL;
 }
 
-static int
-getsockname(int sockfd, struct sockaddr *restrict addr, socklen_t *restrict addrlen) {
-    return -1;
-}
 
 static int
 getaddrinfo(const char *restrict node,
@@ -268,9 +242,7 @@ freeaddrinfo(void *res) {
 
 extern ssize_t recvfrom_bc(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
 
-
-#define getpid sdk_getpid
-extern pid_t sdk_getpid(void);
+*/
 
 
 //#define pthread_mutex_lock(mut) sdk_pthread_mutex_lock(mut)

@@ -1,3 +1,6 @@
+#!/bin/bash
+
+SKIP_CONTRIB=${SKIP_CONTRIB:-false}
 
 mkdir -p ${PGL_DIST_LINK}/exports ${PGL_DIST_LINK}/imports
 cd ${WORKSPACE}
@@ -17,7 +20,7 @@ then
  ltree_plpython sepgsql bool_plperl start-scripts\
  pgcrypto uuid-ossp xml2\
  ]"
-
+    SKIP_CONTRIB=true
 else
 
     # TEMP FIX for SDK
@@ -32,6 +35,13 @@ else
 fi
 
 # common wasi/emsdk contrib build
+if $SKIP_CONTRIB
+then
+    echo "
+    * skipping contrib build
+    "
+    exit 0
+fi
 
 for extdir in postgresql-${PG_BRANCH}/contrib/*
 do

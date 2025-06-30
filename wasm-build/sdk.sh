@@ -48,6 +48,32 @@ then
             wget -q "${VMLABS}/libs%2Flibxml2%2F2.11.4%2B20230623-2993864/libxml2-2.11.4-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
             wget -q "${VMLABS}/libs%2Fbzip2%2F1.0.8%2B20230623-2993864/libbzip2-1.0.8-wasi-sdk-20.0.tar.gz"  -O-| tar xfz -
             wget -q "${VMLABS}/libs%2Flibuuid%2F1.0.3%2B20230623-2993864/libuuid-1.0.3-wasi-sdk-20.0.tar.gz" -O-| tar xfz -
+            cat > ./include/wasm32-wasi/__struct_sockaddr_un.h <<END
+#ifndef __wasilibc___struct_sockaddr_un_h
+#define __wasilibc___struct_sockaddr_un_h
+
+#include <__typedef_sa_family_t.h>
+
+struct sockaddr_un {
+    __attribute__((aligned(__BIGGEST_ALIGNMENT__))) sa_family_t sun_family;
+	char sun_path[108];
+};
+
+#endif
+END
+
+            for level in p1 p2
+            do
+                cp -Rn lib/wasm32-wasi/* lib/wasm32-wasi${level}/
+                cp include/wasm32-wasi/__struct_sockaddr_un.h include/wasm32-wasi${level}/__struct_sockaddr_un.h
+                cp include/wasm32-wasi/sys/shm.h include/wasm32-wasi${level}/sys/shm.h
+                cp include/wasm32-wasi/bits/shm.h include/wasm32-wasi${level}/bits/shm.h
+                sed -i 's|extern FILE \*const stdin;|extern FILE \* stdin;|g'  include/wasm32-wasi${level}/stdio.h
+                sed -i 's|extern FILE \*const stdout;|extern FILE \* stdout;|g'  include/wasm32-wasi${level}/stdio.h
+                sed -i 's|extern FILE \*const stderr;|extern FILE \* stderr;|g'  include/wasm32-wasi${level}/stdio.h
+
+                sed -i 's|int getrusage|//int getrusage|g' include/wasm32-wasi${level}/__header_sys_resource.h
+            done
         popd
         touch ${WASI_SYSROOT}/extra
     fi
@@ -73,7 +99,23 @@ else
                }
                return resolved(...args);
 END
+    # this one for debug mode and changing  -Wl,--global-base= with -sGLOBAL_BASE
+    patch -p1 <<END
+--- emsdk/upstream/emscripten/tools/link.py	2025-06-23 08:45:26.554013381 +0200
++++ emsdk.fix/upstream/emscripten/tools/link.py	2025-06-23 08:45:31.445921560 +0200
+@@ -1662,7 +1662,7 @@
+     # use a smaller LEB encoding).
+     # However, for debugability is better to have the stack come first
+     # (because stack overflows will trap rather than corrupting data).
+-    settings.STACK_FIRST = True
++    settings.STACK_FIRST = False
+
+   if state.has_link_flag('--stack-first'):
+     settings.STACK_FIRST = True
+END
+
     popd
+
 fi
 
 
