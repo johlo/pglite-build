@@ -114,7 +114,11 @@ then
         touch $PG_DIST_WEB/.nojekyll
     fi
 
+    mkdir -p $PG_DIST_WEB/bin
+    [ -f ${CONTAINER_PATH}/tmp/pglite/bin/pg_dump.wasi ] &&  cp -vf ${CONTAINER_PATH}/tmp/pglite/bin/pg_dump.wasi ${PG_DIST_WEB}/bin/pg_dump.wasm
+
     [ -f $DIST_PATH/pglite.wasi ] &&  cp -vf $DIST_PATH/pglite.wasi $PG_DIST_WEB/
+
     [ -f $DIST_PATH/pglite-wasi.tar.xz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.xz $PG_DIST_WEB/
 
 
