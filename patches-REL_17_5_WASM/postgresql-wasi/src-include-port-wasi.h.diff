@@ -1,24 +1,26 @@
 --- REL_17_5_WASM/src/include/port/wasi.h
 +++ pglite-REL_17_5_WASM/src/include/port/wasi.h
-@@ -1,17 +1,283 @@
+@@ -1,17 +1,336 @@
 -/* src/include/port/{wasi/emscripten}.h */
-+#ifndef I_WASI
-+#define I_WASI
++#pragma once
  
 -#ifndef I_WASM
 -#define I_WASM
-+#undef HAVE_PTHREAD
++#ifndef I_WASI
++#define I_WASI
  
 -#if !defined(__cplusplus)
 -#include <sdk_port.h>
++#undef HAVE_PTHREAD
++
 +#if defined(HAVE_SETSID)
 +#undef HAVE_SETSID
- #endif
- 
-+#if defined(HAVE_GETRLIMIT)
-+#undef HAVE_GETRLIMIT
 +#endif
 +
++#if defined(HAVE_GETRLIMIT)
++#undef HAVE_GETRLIMIT
+ #endif
+ 
 +
 +#define PLATFORM_DEFAULT_SYNC_METHOD    SYNC_METHOD_FDATASYNC
 +
@@ -30,18 +32,94 @@
 +#define emscripten_force_exit(...)
 +#define EM_JS(...)
 +
++
  #include "/tmp/pglite/include/wasm_common.h"
  
  
 -#define BOOT_END_MARK "build indices"
 -#define FD_BUFFER_MAX 16384
++#define system(command) system_wasi(command)
++extern int system_wasi(const char *command);
++
 +static pid_t
 +fork(void) {
-+    puts("# 31: fork -1");
++    puts("# 34:" __FILE__ ": fork -1");
 +    return -1;
 +}
 +
-+// ======== signal ========================
++static int
++pipe(int fd[2]) {
++    puts("# 40: pipe");
++    abort();
++    return -1;
++}
++
++/*
++struct __wasi_addrinfo_t{
++  int32_t ai_flags;
++  int32_t ai_family;
++  int32_t ai_socktype;
++  int32_t ai_protocol;
++  __wasi_size_t ai_addrlen;
++  __wasi_address_t* ai_addr;
++  //__wasi_size_t ai_canonname_len;
++  uint32_t ai_canonname;
++  struct __wasi_addrinfo_t** ai_next;
++};
++*/
++
++#include <arpa/inet.h> // for inet_pton
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <netdb.h>
++
++/* extern one is not valid in wasip2
++extern int getaddrinfo(const char *restrict node,
++                       const char *restrict service,
++                       const struct addrinfo *restrict hints,
++                       struct addrinfo **restrict res);
++*/
++
++
++/*
++static int getaddrinfo(const char *hostname, const char *service,
++                   const struct addrinfo *hints, struct addrinfo **res) {
++    struct addrinfo *result = malloc(sizeof(struct addrinfo));
++    if (!result) return EAI_MEMORY;
++
++    memset(result, 0, sizeof(struct addrinfo));
++    result->ai_family = AF_INET;
++    result->ai_socktype = SOCK_STREAM;
++    result->ai_protocol = IPPROTO_TCP;
++
++    struct sockaddr_in *addr = malloc(sizeof(struct sockaddr_in));
++    if (!addr) {
++        free(result);
++        return EAI_MEMORY;
++    }
++
++    addr->sin_family = AF_INET;
++    addr->sin_port = htons(atoi(service));
++    if (inet_pton(AF_INET, hostname, &(addr->sin_addr)) <= 0) {
++        free(result);
++        free(addr);
++        return EAI_FAIL;
++    }
++
++    result->ai_addr = (struct sockaddr *)addr;
++    result->ai_addrlen = sizeof(struct sockaddr_in);
++    result->ai_next = NULL;
++
++    *res = result;
++    return 0;
++}
++
++*/
++
++
++
++// ============= signal ==============
++
 +#define SA_RESTART 4
 +#define SIG_SETMASK   2
 +
@@ -61,6 +139,7 @@
 +#endif
 +    sigset_t sa_mask;
 +};
++
 +extern int sigemptyset(sigset_t *set);
 +extern int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 +extern int sigdelset (sigset_t *set, int sig);
@@ -68,88 +147,20 @@
 +extern int sigprocmask (int operation, const sigset_t *set, sigset_t *old_set);
 +extern int sigaddset (sigset_t *set, int sig);
 +
-+// STUBS
-+extern int pthread_sigmask(int how, const sigset_t *set, sigset_t *oldset);
-+extern int sigismember(const sigset_t *set, int signum);
-+extern int sigpending(sigset_t *set);
-+extern int sigwait(const sigset_t *restrict set, int *restrict sig);
-+
-+// ====================================================
-+// unistd
-+extern unsigned int alarm(unsigned int seconds);
-+
-+// ====================================================
-+
-+
-+#include <setjmp.h>
-+
-+static int
-+sigsetjmp(sigjmp_buf env, int savesigs) {
-+//    puts("# 120: sigsetjmp");
-+    return 0;
-+}
-+
-+static void
-+siglongjmp(sigjmp_buf env, int val) {
-+    puts("# 120: siglongjmp");
-+}
 +
 +
 +
-+// WIP :
-+
-+#include <unistd.h>
++#include <unistd.h> // for uid_t, pid_t
 +static uid_t
 +getuid(void) {
 +    return 1000;
 +}
 +
-+static int
-+dup(int fd) {
-+    puts("# 128: dup");
-+    return fd;
-+}
-+static int
-+dup2(int old, int new) {
-+    puts("# 140: dup2");
-+    return -1;
-+}
-+static int
-+pipe(int fd[2]) {
-+    puts("# 145: pipe");
-+    abort();
-+    return -1;
-+}
-+
-+#include <sys/resource.h>
-+#define RLIMIT_NOFILE 7
-+#define RLIMIT_STACK 3
-+#define RLIM_INFINITY ((unsigned long int)(~0UL))
-+
-+struct rlimit {
-+    unsigned long   rlim_cur;
-+    unsigned long   rlim_max;
-+};
-+static int
-+getrlimit(int resource, struct rlimit *rlim) {
-+    return -1;
-+}
 +
 +
-+static const char *gai_strerror_msg = "# 165: gai_strerror_msg";
-+static const char *
-+gai_strerror(int errcode) {
-+    return gai_strerror_msg;
-+}
 +
-+
-+static int
-+getrusage(int who, struct rusage *usage) {
-+    return -1;
-+}
-+
-+// WIP: semaphores here
-+// ==================================================================
++// WIP: semaphores
++// https://github.com/bytecodealliance/wasm-micro-runtime/issues/3054
 +#include <sys/sem.h>
 +
 +static int
@@ -160,7 +171,7 @@
 +static int
 +semget(key_t key, int nsems, int semflg) {
 +#if 0 // PGDEBUG
-+    printf("# 213: semget(key_t key = %d, int nsems=%d, int semflg=%d)\n", key, nsems, semflg);
++    printf("# 120: semget(key_t key = %d, int nsems=%d, int semflg=%d)\n", key, nsems, semflg);
 +#endif
 +    return 1;
 +}
@@ -170,7 +181,87 @@
 +    return 0;  // -1;
 +}
 +
++static int
++dup(int fd) {
++    puts("# 132: dup");
++    return fd;
++}
 +
++static int
++dup2(int old, int new) {
++    puts("# 138:" __FILE__ ": dup2");
++    return -1;
++}
++
++
++// <sys/resource.h>
++
++#define RLIMIT_NOFILE 7
++#define RLIMIT_STACK 3
++#define RLIM_INFINITY ((unsigned long int)(~0UL))
++
++
++struct rlimit {
++    unsigned long   rlim_cur;
++    unsigned long   rlim_max;
++};
++
++static int
++getrlimit(int resource, struct rlimit *rlim) {
++    return -1;
++}
++
++/*
++
++static int
++getrusage(int who, struct rusage *usage) {
++    return -1;
++}
++*/
++
++// STUBS
++extern int pthread_sigmask(int how, const sigset_t *set, sigset_t *oldset);
++extern int sigwait(const sigset_t *restrict set, int *restrict sig);
++extern int sigismember(const sigset_t *set, int signum);
++extern int sigpending(sigset_t *set);
++
++
++// ****************************************************************************************
++// ****************************************************************************************
++// ****************************************************************************************
++// ****************************************************************************************
++
++
++#ifndef __wasi__p2
++
++
++// ======== signal ========================
++
++
++
++// ====================================================
++// unistd
++extern unsigned int alarm(unsigned int seconds);
++
++// ====================================================
++
++/*
++#include <setjmp.h>
++
++static int
++sigsetjmp(sigjmp_buf env, int savesigs) {
++//    puts("# 201: sigsetjmp");
++    return 0;
++}
++
++static void
++siglongjmp(sigjmp_buf env, int val) {
++    puts("# 207: siglongjmp");
++}
++*/
++
++
++// WIP :
 +
 +#include <sys/mman.h>
 +#if defined(PYDK)
@@ -197,17 +288,6 @@
 +
 +#endif
 +
-+// initdb chmod
-+#if defined(__wasi__)
-+    #define chmod(...) 0
-+#endif
-+
-+
-+
-+#define system(command) system_wasi(command)
-+extern int system_wasi(const char *command);
-+
-+
 +
 +// time.h
 +
@@ -223,7 +303,6 @@
 +#endif
 +
 +
-+extern void sock_flush();
 +
 +
 +// TODO: socket here
@@ -231,13 +310,11 @@
 +
 +#include <sys/socket.h>
 +
-+extern ssize_t sdk_recv(int sockfd, void *buf, size_t len, int flags);
-+extern ssize_t recvfrom(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
++//extern ssize_t sdk_recv(int sockfd, void *buf, size_t len, int flags);
++//extern ssize_t recvfrom(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
 +
-+extern ssize_t sdk_send(int sockfd, const void *buf, size_t len, int flags);
-+extern ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, void *dest_addr, socklen_t addrlen);
-+
-+#define recv(sockfd, buf, len, flags) sdk_recv(sockfd, buf, len, flags)
++//extern ssize_t sdk_send(int sockfd, const void *buf, size_t len, int flags);
++//extern ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, void *dest_addr, socklen_t addrlen);
 +
 +
 +
@@ -252,31 +329,6 @@
 +    return NULL;
 +}
 +
-+static int
-+getsockname(int sockfd, struct sockaddr *restrict addr, socklen_t *restrict addrlen) {
-+    return -1;
-+}
-+
-+static int
-+getaddrinfo(const char *restrict node,
-+                   const char *restrict service,
-+                   void *restrict hints,
-+                   void **restrict res) {
-+    puts("# 60: getaddrinfo");
-+    return -1;
-+}
-+static void
-+freeaddrinfo(void *res) {
-+    puts("# 65: freeaddrinfo");
-+}
-+
-+extern ssize_t recvfrom_bc(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
-+
-+
-+#define getpid sdk_getpid
-+extern pid_t sdk_getpid(void);
-+
-+
 +//#define pthread_mutex_lock(mut) sdk_pthread_mutex_lock(mut)
 +//extern int sdk_pthread_mutex_lock(void *mutex);
 +
@@ -286,6 +338,7 @@
 +       int pthread_mutex_unlock(pthread_mutex_t *mutex);
 +*/
 +
++#endif // __wasi__p2
 +
 +#endif // I_WASI
 +
