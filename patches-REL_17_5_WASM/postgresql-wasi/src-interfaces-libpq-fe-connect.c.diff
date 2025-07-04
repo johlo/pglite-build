@@ -1,187 +1,218 @@
 --- REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
 +++ pglite-REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
-@@ -2480,7 +2480,7 @@
+@@ -2033,7 +2033,8 @@
+ static int
+ connectNoDelay(PGconn *conn)
+ {
+-#ifdef	TCP_NODELAY
++#if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
++#ifdef TCP_NODELAY
+ 	int			on = 1;
+ 
+ 	if (setsockopt(conn->sock, IPPROTO_TCP, TCP_NODELAY,
+@@ -2047,7 +2048,7 @@
+ 		return 0;
+ 	}
+ #endif
+-
++#endif
+ 	return 1;
+ }
+ 
+@@ -2168,6 +2169,9 @@
+ static int
+ useKeepalives(PGconn *conn)
+ {
++#if defined(__EMSCRIPTEN__) || defined(__wasi__)
++return 0;
++#else
+ 	int			val;
+ 
+ 	if (conn->keepalives == NULL)
+@@ -2177,6 +2181,7 @@
+ 		return -1;
+ 
+ 	return val != 0 ? 1 : 0;
++#endif
+ }
+ 
+ #ifndef WIN32
+@@ -2403,13 +2408,14 @@
+ 	 * Nobody but developers should see this message, so we don't bother
+ 	 * translating it.
+ 	 */
++#if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
+ 	if (!pg_link_canary_is_frontend())
+ 	{
+ 		appendPQExpBufferStr(&conn->errorMessage,
+ 							 "libpq is incorrectly linked to backend functions\n");
+ 		goto connect_errReturn;
+ 	}
+-
++#endif
+ 	/* Ensure our buffers are empty */
+ 	conn->inStart = conn->inCursor = conn->inEnd = 0;
+ 	conn->outCount = 0;
+@@ -2435,7 +2441,7 @@
+ 	/* Also reset the target_server_type state if needed */
+ 	if (conn->target_server_type == SERVER_TYPE_PREFER_STANDBY_PASS2)
+ 		conn->target_server_type = SERVER_TYPE_PREFER_STANDBY;
+-
++PDEBUG("# 2381: connectDBStart");
+ 	/*
+ 	 * The code for processing CONNECTION_NEEDED state is in PQconnectPoll(),
+ 	 * so that it can easily be re-executed if needed again during the
+@@ -2447,7 +2453,7 @@
+ 		return 1;
+ 
+ connect_errReturn:
+-
++    PDEBUG("# 2456: CONNECTION_BAD");
+ 	/*
+ 	 * If we managed to open a socket, close it immediately rather than
+ 	 * waiting till PQfinish.  (The application cannot have gotten the socket
+@@ -2474,7 +2480,7 @@
  	int			timeout = 0;
  	int			last_whichhost = -2;	/* certainly different from whichhost */
  	int			last_whichaddr = -2;	/* certainly different from whichaddr */
--PDEBUG("# 2420: connectDBComplete Begin "  __FILE__ );
-+PDEBUG("# 2483: connectDBComplete Begin "  __FILE__ "\r\n");
+-
++PDEBUG("# 2420: connectDBComplete Begin "  __FILE__ );
  	if (conn == NULL || conn->status == CONNECTION_BAD)
  		return 0;
  
-@@ -2492,6 +2492,7 @@
- 		if (!pqParseIntParam(conn->connect_timeout, &timeout, conn,
- 							 "connect_timeout"))
- 		{
-+PDEBUG("# 2495: CONNECTION_BAD\r\n");
- 			/* mark the connection as bad to report the parsing failure */
- 			conn->status = CONNECTION_BAD;
- 			return 0;
-@@ -2516,7 +2517,7 @@
+@@ -2495,7 +2501,7 @@
+ 	for (;;)
+ 	{
+ 		int			ret = 0;
+-
++#if !defined(__wasi__)
+ 		/*
+ 		 * (Re)start the connect_timeout timer if it's active and we are
+ 		 * considering a different host than we were last time through.  If
+@@ -2510,7 +2516,9 @@
  			last_whichhost = conn->whichhost;
  			last_whichaddr = conn->whichaddr;
  		}
--printf("# 2476: switch (%d) PGRES_POLLING_OK=%d PGRES_POLLING_READING=%d PGRES_POLLING_WRITING=%d\n", flag, PGRES_POLLING_OK, PGRES_POLLING_READING,PGRES_POLLING_WRITING);
-+printf("# 2520: switch (%d) PGRES_POLLING_OK=%d PGRES_POLLING_READING=%d PGRES_POLLING_WRITING=%d\r\n", flag, PGRES_POLLING_OK, PGRES_POLLING_READING,PGRES_POLLING_WRITING);
- if(!flag) abort();
+-
++#endif
++printf("# 2519: switch (%d) PGRES_POLLING_OK=%d PGRES_POLLING_READING=%d PGRES_POLLING_WRITING=%d\n", flag, PGRES_POLLING_OK, PGRES_POLLING_READING,PGRES_POLLING_WRITING);
++if(!flag) abort();
  		/*
  		 * Wait, if necessary.  Note that the initial state (just after
-@@ -2527,8 +2528,8 @@
- 			case PGRES_POLLING_OK:
+ 		 * PQconnectStart) is to wait for the socket to select for writing.
+@@ -2521,6 +2529,7 @@
  				return 1;		/* success! */
  
-+#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
  			case PGRES_POLLING_READING:
--#if !defined(__wasi__)
++#if !defined(__wasi__)
  				ret = pqWaitTimed(1, 0, conn, end_time);
  				if (ret == -1)
  				{
-@@ -2546,11 +2547,24 @@
+@@ -2528,9 +2537,11 @@
  					conn->status = CONNECTION_BAD;
  					return 0;
  				}
--#endif
- 				break;
-+#else
-+            case PGRES_POLLING_READING:
-+PDEBUG("# 2553: PGRES_POLLING_READING\r\n");
-+                break;
-+
-+			case PGRES_POLLING_WRITING:
-+PDEBUG("# 2557: PGRES_POLLING_WRITING\r\n");
-+				break;
 +#endif
-+
+ 				break;
+ 
+ 			case PGRES_POLLING_WRITING:
++#if !defined(__wasi__)
+ 				ret = pqWaitTimed(0, 1, conn, end_time);
+ 				if (ret == -1)
+ 				{
+@@ -2538,9 +2549,11 @@
+ 					conn->status = CONNECTION_BAD;
+ 					return 0;
+ 				}
++#endif
+ 				break;
  
  			default:
--PDEBUG("# 2508: CONNECTION_BAD");
-+PDEBUG("# 2563: CONNECTION_BAD\r\n");
-+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
-+/*conn->status = CONNECTION_CHECK_TARGET;
-+return 1;*/
-+#endif
++PDEBUG("# 2508: CONNECTION_BAD");
  				/* Just in case we failed to set it in PQconnectPoll */
  				conn->status = CONNECTION_BAD;
  				return 0;
-@@ -2558,14 +2572,19 @@
+@@ -2548,6 +2561,7 @@
  
  		if (ret == 1)			/* connect_timeout elapsed */
  		{
--PDEBUG("# 2535: timeout !");
-+PDEBUG("# 2575: timeout !\r\n");
++PDEBUG("# 2535: timeout !");
  			/*
  			 * Give up on current server/address, try the next one.
  			 */
-+#if defined(__EMSCRIPTEN__)
-+PDEBUG("# 2580: FATAL !\r\n");
-+    return 0;
-+#else
- 			conn->try_next_addr = true;
- 			conn->status = CONNECTION_NEEDED;
-+#endif
- 		}
--
-+puts("# 2587: PQconnectPoll/begin\r\n");
- 		/*
- 		 * Now try to advance the state machine.
- 		 */
-@@ -2574,6 +2593,7 @@
- 		else
- 			flag = PQconnectPoll(conn);
- 	}
-+puts("# 2596: PQconnectPoll/done\r\n");
- }
- 
- /* ----------------
-@@ -2618,13 +2638,13 @@
- 	/* Get the new data */
- 	switch (conn->status)
- 	{
--printf("# 2577: conn->status(%d)\n", conn->status );
-+printf("# 2626: conn->status(%d)\r\n", conn->status );
- 			/*
- 			 * We really shouldn't have been polled in these two cases, but we
- 			 * can handle it.
- 			 */
- 		case CONNECTION_BAD:
--PDEBUG("# FSM2580: CONNECTION_BAD");
-+PDEBUG("# FSM2580: CONNECTION_BAD\r\n");
- 			return PGRES_POLLING_FAILED;
- 		case CONNECTION_OK:
- 			return PGRES_POLLING_OK;
-@@ -2638,14 +2658,14 @@
+@@ -2624,8 +2638,14 @@
+ 		case CONNECTION_CHECK_STANDBY:
  			{
  				/* Load waiting data */
- #if defined(__wasi__)
--    puts("# 2597: CONNECTION_CHECK_STANDBY -> ?????");
-+    puts("# 2646: CONNECTION_CHECK_STANDBY -> ?????\r\n");
- 				int			n = pqReadData(conn);
-     if (!n) {
-         puts("YIELD!");
-         sched_yield();
-     }
+-				int			n = pqReadData(conn);
+-
++#if defined(__wasi__)
++	int			n = pqReadData(conn);
++    if (!n) {
++        sched_yield();
++    }
++#else
++int			n = pqReadData(conn);
++#endif
+ 				if (n < 0)
+ 					goto error_return;
+ 				if (n == 0)
+@@ -2668,6 +2688,7 @@
+ 		conn->try_next_addr = false;
+ 	}
  
--    printf("# 2604: pqReadData-> %d\n", n);
-+    printf("# 2653: pqReadData-> %d\r\n", n);
- #else
- int			n = pqReadData(conn);
- #endif
-@@ -2677,11 +2697,11 @@
- 
- keep_going:						/* We will come back to here until there is
- 								 * nothing left to do. */
--PDEBUG("# 2615: keep_going");
-+PDEBUG("# 2685: keep_going\r\n");
- 	/* Time to advance to next address, or next host if no more addresses? */
- 	if (conn->try_next_addr)
- 	{
--PDEBUG("# 2615: keep_going -> try_next_addr ");
-+PDEBUG("# 2689: keep_going -> try_next_addr\r\n");
- 		if (conn->whichaddr < conn->naddr)
- 		{
- 			conn->whichaddr++;
-@@ -2696,7 +2716,7 @@
++
  	/* Time to advance to next connhost[] entry? */
  	if (conn->try_next_host)
  	{
--PDEBUG("# 2615: keep_going -> try_next_host ");
-+PDEBUG("# 2704: keep_going -> try_next_host\r\n");
- 		pg_conn_host *ch;
- 		struct addrinfo hint;
- 		struct addrinfo *addrlist;
-@@ -3205,7 +3225,7 @@
- 							 * the connection is in progress.  Tell caller to
- 							 * wait for write-ready on socket.
- 							 */
--							conn->status = CONNECTION_STARTED;
-+							conn->status = CONNECTION_STARTED; puts("# 3218\r\n");
- 							return PGRES_POLLING_WRITING;
- 						}
- 						/* otherwise, trouble */
-@@ -3217,7 +3237,7 @@
- 						 * connection" wasn't.  Advance the state machine and
- 						 * go do the next stuff.
- 						 */
--						conn->status = CONNECTION_STARTED;
-+						conn->status = CONNECTION_STARTED; puts("# 3230\r\n");
- 						goto keep_going;
- 					}
- 
-@@ -3233,7 +3253,7 @@
- 
- 		case CONNECTION_STARTED:
- 			{
--puts("# 3168: CONNECTION_STARTED");
-+puts("# 3246: CONNECTION_STARTED\r\n");
- 				socklen_t	optlen = sizeof(optval);
- 
- 				/*
-@@ -3245,7 +3265,7 @@
+@@ -3218,7 +3239,7 @@
  				 * Now check (using getsockopt) that there is not an error
  				 * state waiting for us on the socket.
  				 */
--#if !defined(__wasi__)
-+#if !defined(__wasi__) && !defined(__EMSCRIPTEN__)
+-
++#if !defined(__wasi__)
  				if (getsockopt(conn->sock, SOL_SOCKET, SO_ERROR,
  							   (char *) &optval, &optlen) == -1)
  				{
+@@ -3305,6 +3326,10 @@
+ 				/*
+ 				 * Make sure we can write before advancing to next step.
+ 				 */
++#else
++conn->options_valid = true;
++conn->try_next_host = false;
++#endif // __wasi__
+ 				conn->status = CONNECTION_MADE;
+ 				return PGRES_POLLING_WRITING;
+ 			}
+@@ -3871,14 +3896,20 @@
+ 				 * Note that conn->pghost must be non-NULL if we are going to
+ 				 * avoid the Kerberos code doing a hostname look-up.
+ 				 */
++#if defined(__wasi__)
++if (!conn->pghost) {
++    conn->pgpass = strdup("md532e12f215ba27cb750c9e093ce4b5127");
++    conn->pghost = strdup("localhost");
++}
++#endif
+ 				res = pg_fe_sendauth(areq, msgLength, conn);
+ 
+ 				/* OK, we have processed the message; mark data consumed */
+ 				conn->inStart = conn->inCursor;
+ 
+-				if (res != STATUS_OK)
++				if (res != STATUS_OK) {
+ 					goto error_return;
+-
++                }
+ 				/*
+ 				 * Just make sure that any data sent by pg_fe_sendauth is
+ 				 * flushed out.  Although this theoretically could block, it
+@@ -4272,7 +4303,6 @@
+ 	/* Unreachable */
+ 
+ error_return:
+-
+ 	/*
+ 	 * We used to close the socket at this point, but that makes it awkward
+ 	 * for those above us if they wish to remove this socket from their own

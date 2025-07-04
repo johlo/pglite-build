@@ -388,7 +388,6 @@ interactive_one() {
     }
 
 #if PGDEBUG
-    puts("\n\n# 369: interactive_one");
     if (notifyInterruptPending)
         PDEBUG("# 371: has notification !");
 #endif
@@ -524,7 +523,6 @@ puts("# 475:" PGS_IN "\r\n");
                 /* else it was wire msg or sql */
 #if PGDEBUG
                 if (is_wire) {
-                    printf("# 499: is_wire -> true : %c\n", peek);
                     force_echo = true;
                 }
 
@@ -610,13 +608,6 @@ incoming:
             firstchar = SocketBackend(inBuf);
 
             pipelining = pq_buffer_remaining_data()>0;
-#if PGDEBUG
-            if (!pipelining) {
-                printf("# 556: end of wire, rfq=%d\n", send_ready_for_query);
-            } else {
-                printf("# 558: no end of wire -> pipelining, rfq=%d\n", send_ready_for_query);
-            }
-#endif
         } else {
             /* nowire */
             // pipelining = false;
@@ -628,15 +619,6 @@ incoming:
             }
         }
         DoingCommandRead = false;
-
-#if 0 // PGDEBUG
-        if (!pipelining) {
-            printf("# 573: wire=%d 1stchar=%c Q: %s\n", is_wire,  firstchar, inBuf->data);
-            force_echo = false;
-        } else {
-            printf("# 576: PIPELINING [%c]!\n", firstchar);
-        }
-#endif
 
         if (!ignore_till_sync) {
             /* initially, or after error */
@@ -657,7 +639,6 @@ incoming:
         if (pipelining) {
             pipelining = pq_buffer_remaining_data()>0;
             if (pipelining && send_ready_for_query) {
-puts("# 631:  PIPELINING + rfq");
                 ReadyForQuery(whereToSendOutput);
                 send_ready_for_query = false;
             }
@@ -672,7 +653,7 @@ wire_flush:
                ProcessNotifyInterrupt(false);
 
             if (send_ready_for_query) {
-                PDEBUG("# 602: end packet - sending rfq\n");
+//                PDEBUG("# 602: end packet - sending rfq\n");
                 ReadyForQuery(DestRemote);
                 //done at postgres.c 4623
                 send_ready_for_query = false;

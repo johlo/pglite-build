@@ -1,6 +1,6 @@
 --- REL_17_5_WASM/src/include/port/wasi.h
 +++ pglite-REL_17_5_WASM/src/include/port/wasi.h
-@@ -1,17 +1,336 @@
+@@ -1,17 +1,229 @@
 -/* src/include/port/{wasi/emscripten}.h */
 +#pragma once
  
@@ -54,70 +54,6 @@
 +    return -1;
 +}
 +
-+/*
-+struct __wasi_addrinfo_t{
-+  int32_t ai_flags;
-+  int32_t ai_family;
-+  int32_t ai_socktype;
-+  int32_t ai_protocol;
-+  __wasi_size_t ai_addrlen;
-+  __wasi_address_t* ai_addr;
-+  //__wasi_size_t ai_canonname_len;
-+  uint32_t ai_canonname;
-+  struct __wasi_addrinfo_t** ai_next;
-+};
-+*/
-+
-+#include <arpa/inet.h> // for inet_pton
-+#include <sys/types.h>
-+#include <sys/socket.h>
-+#include <netdb.h>
-+
-+/* extern one is not valid in wasip2
-+extern int getaddrinfo(const char *restrict node,
-+                       const char *restrict service,
-+                       const struct addrinfo *restrict hints,
-+                       struct addrinfo **restrict res);
-+*/
-+
-+
-+/*
-+static int getaddrinfo(const char *hostname, const char *service,
-+                   const struct addrinfo *hints, struct addrinfo **res) {
-+    struct addrinfo *result = malloc(sizeof(struct addrinfo));
-+    if (!result) return EAI_MEMORY;
-+
-+    memset(result, 0, sizeof(struct addrinfo));
-+    result->ai_family = AF_INET;
-+    result->ai_socktype = SOCK_STREAM;
-+    result->ai_protocol = IPPROTO_TCP;
-+
-+    struct sockaddr_in *addr = malloc(sizeof(struct sockaddr_in));
-+    if (!addr) {
-+        free(result);
-+        return EAI_MEMORY;
-+    }
-+
-+    addr->sin_family = AF_INET;
-+    addr->sin_port = htons(atoi(service));
-+    if (inet_pton(AF_INET, hostname, &(addr->sin_addr)) <= 0) {
-+        free(result);
-+        free(addr);
-+        return EAI_FAIL;
-+    }
-+
-+    result->ai_addr = (struct sockaddr *)addr;
-+    result->ai_addrlen = sizeof(struct sockaddr_in);
-+    result->ai_next = NULL;
-+
-+    *res = result;
-+    return 0;
-+}
-+
-+*/
-+
-+
-+
 +// ============= signal ==============
 +
 +#define SA_RESTART 4
@@ -155,8 +91,6 @@
 +getuid(void) {
 +    return 1000;
 +}
-+
-+
 +
 +
 +// WIP: semaphores
@@ -245,25 +179,10 @@
 +
 +// ====================================================
 +
-+/*
-+#include <setjmp.h>
-+
-+static int
-+sigsetjmp(sigjmp_buf env, int savesigs) {
-+//    puts("# 201: sigsetjmp");
-+    return 0;
-+}
-+
-+static void
-+siglongjmp(sigjmp_buf env, int val) {
-+    puts("# 207: siglongjmp");
-+}
-+*/
-+
-+
 +// WIP :
 +
 +#include <sys/mman.h>
++
 +#if defined(PYDK)
 +extern int shm_open(const char *name, int oflag, mode_t mode);
 +extern int shm_unlink(const char *name);
@@ -274,7 +193,7 @@
 +    int fd;
 +    snprintf(tmpnam, 128, "/tmp%s", name);
 +    fd=fileno(fopen(tmpnam, "w+"));
-+    fprintf(stderr, "# 212: shm_open(%s) => %d\n", tmpnam, fd);
++    fprintf(stderr, "# 186: shm_open(%s) => %d\n", tmpnam, fd);
 +    return fd;
 +}
 +
@@ -282,7 +201,7 @@
 +shm_unlink(const char *name) {
 +    char tmpnam[128];
 +    snprintf(tmpnam, 128, "/tmp%s", name);
-+    fprintf(stderr, "# 220: shm_unlink(%s) STUB\n", tmpnam);
++    fprintf(stderr, "# 194: shm_unlink(%s) STUB\n", tmpnam);
 +    return remove(tmpnam); // -1
 +}
 +
@@ -293,7 +212,7 @@
 +
 +static void
 +tzset(void) {
-+    puts("# 241: tzset(void) STUB");
++    puts("# 205: tzset(void) STUB");
 +}
 +
 +#if defined(PG_INITDB) || defined(FE_UTILS_PRINT) || defined(PG_DUMP_PARALLEL)
@@ -301,22 +220,6 @@
 +__SIG_IGN(int param) {
 +}
 +#endif
-+
-+
-+
-+
-+// TODO: socket here
-+// ==================================================================
-+
-+#include <sys/socket.h>
-+
-+//extern ssize_t sdk_recv(int sockfd, void *buf, size_t len, int flags);
-+//extern ssize_t recvfrom(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
-+
-+//extern ssize_t sdk_send(int sockfd, const void *buf, size_t len, int flags);
-+//extern ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, void *dest_addr, socklen_t addrlen);
-+
-+
 +
 +
 +static int
@@ -329,19 +232,9 @@
 +    return NULL;
 +}
 +
-+//#define pthread_mutex_lock(mut) sdk_pthread_mutex_lock(mut)
-+//extern int sdk_pthread_mutex_lock(void *mutex);
-+
-+/*
-+       int pthread_mutex_lock(pthread_mutex_t *mutex);
-+       int pthread_mutex_trylock(pthread_mutex_t *mutex);
-+       int pthread_mutex_unlock(pthread_mutex_t *mutex);
-+*/
-+
 +#endif // __wasi__p2
 +
 +#endif // I_WASI
-+
  
  
 -#endif // I_WASM
