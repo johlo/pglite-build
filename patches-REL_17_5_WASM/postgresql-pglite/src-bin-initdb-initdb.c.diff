@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/bin/initdb/initdb.c
-+++ pglite-REL_17_5_WASM/src/bin/initdb/initdb.c
++++ REL_17_5_WASM-pglite/src/bin/initdb/initdb.c
 @@ -171,7 +171,11 @@
  
  
@@ -41,7 +41,7 @@
  #if defined(HAVE_SHM_OPEN) && !defined(__sun__)
  	int			ntries = 10;
  	pg_prng_state prng_state;
-@@ -1608,10 +1620,9 @@
+@@ -1608,10 +1620,8 @@
  	}
  
  	PG_CMD_CLOSE();
@@ -50,11 +50,10 @@
 +    termPQExpBuffer(&cmd);
  	free(bki_lines);
 -
-+PDEBUG("# 1624: BOOT pipe complete");
  	check_ok();
  }
  
-@@ -1711,16 +1722,16 @@
+@@ -1711,16 +1721,16 @@
  setup_run_file(FILE *cmdfd, const char *filename)
  {
  	char	  **lines;
@@ -74,7 +73,7 @@
  
  	free(lines);
  }
-@@ -2636,8 +2647,13 @@
+@@ -2636,8 +2646,13 @@
  			strlcpy(full_path, progname, sizeof(full_path));
  
  		if (ret == -1)
@@ -88,21 +87,7 @@
  		else
  			pg_fatal("program \"%s\" was found by \"%s\" but was not the same version as %s",
  					 "postgres", full_path, progname);
-@@ -3096,7 +3112,7 @@
- 	initPQExpBuffer(&cmd);
- 	printfPQExpBuffer(&cmd, "\"%s\" %s %s template1 >%s",
- 					  backend_exec, backend_options, extra_options, DEVNULL);
--
-+PDEBUG("# 3115: post-bootstrap sql begin");
- 	PG_CMD_OPEN(cmd.data);
- 
- 	setup_auth(cmdfd);
-@@ -3134,14 +3150,53 @@
- 
- 	PG_CMD_CLOSE();
- 	termPQExpBuffer(&cmd);
--
-+PDEBUG("# 3115: post-bootstrap sql end");
+@@ -3138,10 +3153,49 @@
  	check_ok();
  }
  
@@ -154,7 +139,7 @@
  	static struct option long_options[] = {
  		{"pgdata", required_argument, NULL, 'D'},
  		{"encoding", required_argument, NULL, 'E'},
-@@ -3201,9 +3256,15 @@
+@@ -3201,9 +3255,15 @@
  	 * POSIX says we must do this before any other usage of these files.
  	 */
  	setvbuf(stdout, NULL, PG_IOLBF, 0);
@@ -171,32 +156,28 @@
  	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("initdb"));
  
  	if (argc > 1)
-@@ -3409,7 +3470,7 @@
+@@ -3409,7 +3469,10 @@
  	if (icu_rules && locale_provider != COLLPROVIDER_ICU)
  		pg_fatal("%s cannot be specified unless locale provider \"%s\" is chosen",
  				 "--icu-rules", "icu");
 -
-+PDEBUG("# 3463:"__FILE__ " TODO: atexit(cleanup_directories_atexit)");
++#if defined(__wasi__) || defined(__EMSCRIPTEN__)
++#pragma message "#TODO: atexit(cleanup_directories_atexit)"
++PDEBUG("# 3472:"__FILE__ "#TODO: atexit(cleanup_directories_atexit)");
++#endif
  	atexit(cleanup_directories_atexit);
  
  	/* If we only need to sync, just do it and exit */
-@@ -3445,13 +3506,13 @@
+@@ -3445,9 +3508,7 @@
  	get_restricted_token();
  
  	setup_pgdata();
 -
-+PDEBUG("# 3493:pgl_initdb_main " __FILE__);
  	setup_bin_paths(argv[0]);
 -
-+PDEBUG("# 3495:pgl_initdb_main " __FILE__);
  	effective_user = get_id();
  	if (!username)
  		username = effective_user;
--
-+PDEBUG("# 3514:pgl_initdb_main " __FILE__);
- 	if (strncmp(username, "pg_", 3) == 0)
- 		pg_fatal("superuser name \"%s\" is disallowed; role names cannot begin with \"pg_\"", username);
- 
 @@ -3479,7 +3540,7 @@
  		get_su_pwd();
  
@@ -206,12 +187,11 @@
  	initialize_data_directory();
  
  	if (do_sync)
-@@ -3535,7 +3596,7 @@
+@@ -3535,7 +3596,6 @@
  		destroyPQExpBuffer(start_db_cmd);
  	}
  
 -
-+PDEBUG("# 3583");
  	success = true;
  	return 0;
  }

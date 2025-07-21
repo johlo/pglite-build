@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/backend/libpq/pqcomm.c
-+++ pglite-REL_17_5_WASM/src/backend/libpq/pqcomm.c
++++ REL_17_5_WASM-pglite/src/backend/libpq/pqcomm.c
 @@ -131,8 +131,15 @@
  static char *PqRecvBuffer;
  static int	PqRecvPointer;
@@ -16,15 +16,6 @@
  /*
   * Message status
   */
-@@ -282,7 +289,7 @@
- 		(void) pq_settcpusertimeout(tcp_user_timeout, port);
- 	}
- #endif /* WASM */
--PDEBUG("# 285:" __FILE__);
-+PDEBUG("# 287:" __FILE__);
- 	/* initialize state variables */
- 	PqSendBufferSize = PQ_SEND_BUFFER_SIZE;
- 	PqSendBuffer = MemoryContextAlloc(TopMemoryContext, PqSendBufferSize);
 @@ -320,9 +327,7 @@
  	AddWaitEventToSet(FeBeWaitSet, WL_POSTMASTER_DEATH, PGINVALID_SOCKET,
  					  NULL, NULL);

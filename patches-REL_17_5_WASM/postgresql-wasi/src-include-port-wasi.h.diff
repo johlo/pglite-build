@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/include/port/wasi.h
-+++ pglite-REL_17_5_WASM/src/include/port/wasi.h
++++ REL_17_5_WASM-pglite/src/include/port/wasi.h
 @@ -1,17 +1,229 @@
 -/* src/include/port/{wasi/emscripten}.h */
 +#pragma once

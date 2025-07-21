@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/interfaces/libpq/fe-auth.c
-+++ pglite-REL_17_5_WASM/src/interfaces/libpq/fe-auth.c
++++ REL_17_5_WASM-pglite/src/interfaces/libpq/fe-auth.c
 @@ -1169,6 +1169,7 @@
  pg_fe_getusername(uid_t user_id, PQExpBuffer errorMessage)
  {

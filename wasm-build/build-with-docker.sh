@@ -2,8 +2,7 @@
 
 # we are using a custom emsdk to build pglite wasm
 # this is available as a docker image under electricsql/pglite-builder
-IMG_NAME="electricsql/pglite-builder"
-IMG_TAG="17.4_3.1.61.7bi"
+IMG_NAME=${IMG_NAME:-"electricsql/pglite-builder"}
 
 [ -f postgres-pglite/configure ] || ln -s . postgres-pglite
 
@@ -23,6 +22,17 @@ source .buildconfig
 cat .buildconfig
 
 
+if echo $IMG_NAME|grep -q debian
+then
+    IMG_NAME="debian"
+    IMG_TAG="12"
+    wget -q -Osdk.tar.lz4 \
+     https://github.com/electric-sql/portable-sdk/releases/download/${SDK_VERSION}/python3.13-wasm-sdk-${IMG_NAME}${IMG_TAG}-$(arch).tar.lz4
+else
+    IMG_TAG="${PG_VERSION}_${SDK_VERSION}"
+fi
+
+
 mkdir -p dist/pglite dist/extensions-emsdk
 
 if echo -n $@|grep -q it$
@@ -32,12 +42,15 @@ else
     PROMPT=")"
 fi
 
+
+
 docker run $@ \
   --rm \
   --env-file .buildconfig \
   -e DEBUG=${DEBUG:-false} \
+  -e WASI=${WASI:-false} \
   --workdir=${DOCKER_WORKSPACE} \
   -v ${WORKSPACE}/postgres-pglite:${DOCKER_WORKSPACE}:rw \
   -v ${WORKSPACE}/postgres-pglite/dist:/tmp/sdk/dist:rw \
   $IMG_NAME:$IMG_TAG \
-  bash --noprofile --rcfile ${SDKROOT}/wasm32-bi-emscripten-shell.sh -ci "( ./wasm-build.sh ${WHAT:-\"contrib extra\"} $PROMPT"
+  bash --noprofile --rcfile ./docker_rc.sh -ci "( ./wasm-build.sh ${WHAT:-\"contrib extra\"} $PROMPT"

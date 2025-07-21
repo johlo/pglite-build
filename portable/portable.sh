@@ -5,6 +5,7 @@ export PORTABLE=$(realpath $(dirname $0))
 export ROOT=$(realpath $(pwd))
 export SDKROOT=${SDKROOT:-/tmp/sdk}
 export WASI=${WASI:-false}
+export PGCRYPTO=${PGCRYPTO:-false}
 
 echo "
 
@@ -20,6 +21,7 @@ DEBUG=$DEBUG
 USE_ICU=$USE_ICU
 WASI=$WASI
 
+PGCRYPTO=$PGCRYPTO
 ==================================================================================================
 ==================================================================================================
 

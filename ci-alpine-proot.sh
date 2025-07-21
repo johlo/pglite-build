@@ -16,6 +16,7 @@ export WORKSPACE=$(pwd)
 
 export WASI=${WASI:-false}
 
+export PGCRYPTO=${PGCRYPTO:-false}
 
 if $WASI
 then
@@ -64,7 +65,7 @@ fi
 
 mkdir -p $CONTAINER_PATH/tmp
 
-#TODO: pglite has .buildconfig in postgres source dir instead.
+#TODO: pglite has .buildconfig in postgres-pglite source dir instead.
     cat > $CONTAINER_PATH/tmp/portable.opts <<END
 export PG_VERSION=${PG_VERSION}
 export PG_BRANCH=${PG_BRANCH}
@@ -78,6 +79,7 @@ export WASI=${WASI}
 export NATIVE=${NATIVE}
 
 export PGROOT=/tmp/pglite
+export PGCRYPTO=${PGCRYPTO}
 export USE_ICU=${USE_ICU}
 export GETZIC=${GETZIC}
 export ZIC=${ZIC}

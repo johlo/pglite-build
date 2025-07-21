@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/interfaces/libpq/fe-misc.c
-+++ pglite-REL_17_5_WASM/src/interfaces/libpq/fe-misc.c
++++ REL_17_5_WASM-pglite/src/interfaces/libpq/fe-misc.c
 @@ -826,7 +826,11 @@
  		int			sent;
  

@@ -1,5 +1,5 @@
 --- REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
-+++ pglite-REL_17_5_WASM/src/interfaces/libpq/fe-connect.c
++++ REL_17_5_WASM-pglite/src/interfaces/libpq/fe-connect.c
 @@ -2033,7 +2033,8 @@
  static int
  connectNoDelay(PGconn *conn)
@@ -53,33 +53,6 @@
  	/* Ensure our buffers are empty */
  	conn->inStart = conn->inCursor = conn->inEnd = 0;
  	conn->outCount = 0;
-@@ -2435,7 +2441,7 @@
- 	/* Also reset the target_server_type state if needed */
- 	if (conn->target_server_type == SERVER_TYPE_PREFER_STANDBY_PASS2)
- 		conn->target_server_type = SERVER_TYPE_PREFER_STANDBY;
--
-+PDEBUG("# 2381: connectDBStart");
- 	/*
- 	 * The code for processing CONNECTION_NEEDED state is in PQconnectPoll(),
- 	 * so that it can easily be re-executed if needed again during the
-@@ -2447,7 +2453,7 @@
- 		return 1;
- 
- connect_errReturn:
--
-+    PDEBUG("# 2456: CONNECTION_BAD");
- 	/*
- 	 * If we managed to open a socket, close it immediately rather than
- 	 * waiting till PQfinish.  (The application cannot have gotten the socket
-@@ -2474,7 +2480,7 @@
- 	int			timeout = 0;
- 	int			last_whichhost = -2;	/* certainly different from whichhost */
- 	int			last_whichaddr = -2;	/* certainly different from whichaddr */
--
-+PDEBUG("# 2420: connectDBComplete Begin "  __FILE__ );
- 	if (conn == NULL || conn->status == CONNECTION_BAD)
- 		return 0;
- 
 @@ -2495,7 +2501,7 @@
  	for (;;)
  	{
@@ -128,19 +101,11 @@
  				break;
  
  			default:
-+PDEBUG("# 2508: CONNECTION_BAD");
++
  				/* Just in case we failed to set it in PQconnectPoll */
  				conn->status = CONNECTION_BAD;
  				return 0;
-@@ -2548,6 +2561,7 @@
- 
- 		if (ret == 1)			/* connect_timeout elapsed */
- 		{
-+PDEBUG("# 2535: timeout !");
- 			/*
- 			 * Give up on current server/address, try the next one.
- 			 */
-@@ -2624,8 +2638,14 @@
+@@ -2624,8 +2637,14 @@
  		case CONNECTION_CHECK_STANDBY:
  			{
  				/* Load waiting data */
@@ -157,7 +122,7 @@
  				if (n < 0)
  					goto error_return;
  				if (n == 0)
-@@ -2668,6 +2688,7 @@
+@@ -2668,6 +2687,7 @@
  		conn->try_next_addr = false;
  	}
  
@@ -165,7 +130,7 @@
  	/* Time to advance to next connhost[] entry? */
  	if (conn->try_next_host)
  	{
-@@ -3218,7 +3239,7 @@
+@@ -3218,7 +3238,7 @@
  				 * Now check (using getsockopt) that there is not an error
  				 * state waiting for us on the socket.
  				 */
@@ -174,7 +139,7 @@
  				if (getsockopt(conn->sock, SOL_SOCKET, SO_ERROR,
  							   (char *) &optval, &optlen) == -1)
  				{
-@@ -3305,6 +3326,10 @@
+@@ -3305,6 +3325,10 @@
  				/*
  				 * Make sure we can write before advancing to next step.
  				 */
@@ -185,7 +150,7 @@
  				conn->status = CONNECTION_MADE;
  				return PGRES_POLLING_WRITING;
  			}
-@@ -3871,14 +3896,20 @@
+@@ -3871,14 +3895,20 @@
  				 * Note that conn->pghost must be non-NULL if we are going to
  				 * avoid the Kerberos code doing a hostname look-up.
  				 */
@@ -208,7 +173,7 @@
  				/*
  				 * Just make sure that any data sent by pg_fe_sendauth is
  				 * flushed out.  Although this theoretically could block, it
-@@ -4272,7 +4303,6 @@
+@@ -4272,7 +4302,6 @@
  	/* Unreachable */
  
  error_return:
