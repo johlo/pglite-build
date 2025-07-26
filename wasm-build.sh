@@ -9,9 +9,16 @@ export CI=${CI:-false}
 export PORTABLE=${PORTABLE:-$(pwd)/wasm-build}
 export SDKROOT=${SDKROOT:-/tmp/sdk}
 
-export GETZIC=${GETZIC:-true}
+
 # systems default may not be in path
 export ZIC=${ZIC:-/usr/sbin/zic}
+
+if [ -x $ZIC ]
+then
+    export GETZIC=false
+else
+    export GETZIC=true
+fi
 
 # data transfer zone this is == (wire query size + result size ) + 2
 # expressed in EMSDK MB, max is 13MB on emsdk 3.1.74+
@@ -459,8 +466,30 @@ fi
 # ===========================================================================
 # ===========================================================================
 
+if $WASI
+then
+    echo "
 
 
+    ================================================================================
+    ================================================================================
+
+
+
+            $(md5sum /tmp/pglite/bin/pg_dump.wasi)
+
+
+
+    ================================================================================
+    ================================================================================
+
+
+
+    "
+    cp /tmp/pglite/bin/pg_dump.wasi /tmp/sdk/dist/
+fi
+
+[ -d pglite-wasm ] && ln -s $(pwd)/pglite-wasm pglite-${PG_BRANCH}
 
 # only build extra when targeting pglite-wasm .
 rm -f pglite-link.sh
@@ -475,7 +504,7 @@ then
 "
         cat > pglite-link.sh <<END
 . ${PGROOT}/pgopts.sh
-. ${SDKROOT}/wasm32-bi-emscripten-shell.sh
+. ${SDKROOT}/wasm32-wasi-shell.sh
 if ./pglite-${PG_BRANCH}/build.sh
 then
     echo "TODO: tests"
@@ -488,6 +517,7 @@ END
         then
             echo "TODO: extensions fs packing"
         fi
+
 
     else
 
@@ -555,16 +585,7 @@ END
 
         if ./pglite-link.sh
         then
-            if [ -d pglite ]
-            then
-               echo -n
-            else
-                for archive in ${PG_DIST_EXT}/*.tar
-                do
-                    echo "    packing extension $archive (docker build)"
-                    gzip -f -k -9 $archive
-                done
-            fi
+            echo "linking libpglite done"
         else
             exit $LINENO
         fi
@@ -572,3 +593,15 @@ END
 else
     echo "linking libpglite skipped"
 fi
+
+if [ -d pglite ]
+then
+   echo -n
+else
+    for archive in ${PG_DIST_EXT}/*.tar
+    do
+        echo "    packing extension $archive (docker build)"
+        gzip -f -k -9 $archive
+    done
+fi
+

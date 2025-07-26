@@ -53,6 +53,8 @@ else
                }
                return resolved(...args);
 END
+
+
     # this one for debug mode and changing  -Wl,--global-base= with -sGLOBAL_BASE
     patch -p1 <<END
 --- emsdk/upstream/emscripten/tools/link.py	2025-06-23 08:45:26.554013381 +0200
