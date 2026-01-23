@@ -17,28 +17,57 @@ else
         touch ./src/include/port/emscripten.h
         touch ./src/include/port/wasm_common.h
         touch ./src/makefiles/Makefile.emscripten
-        for patchdir in \
-            postgresql-debug \
-            postgresql-emscripten \
-            postgresql-pglite
-        do
-            if [ -d ../patches/$patchdir ]
-            then
-                for one in ../patches/$patchdir/*.diff
-                do
-                    if cat $one | patch -p1
-                    then
-                        echo applied $one
+
+        # Determine patches directories (dynamic based on PG_BRANCH)
+        # Priority: 1) patches/common, 2) patches/${PG_BRANCH}, 3) patches-${PG_BRANCH} (legacy)
+        PATCHES_COMMON="../patches/common"
+        PATCHES_VERSION="../patches/${PG_BRANCH}"
+        PATCHES_LEGACY="../patches-${PG_BRANCH}"
+
+        apply_patches_from_dir() {
+            local patchdir="$1"
+            local category="$2"
+            local full_path="$patchdir/$category"
+
+            if [ -d "$full_path" ]; then
+                for one in "$full_path"/*.diff; do
+                    [ -f "$one" ] || continue  # skip if no .diff files
+
+                    # Check if already applied (reverse patch succeeds)
+                    if patch -R -p1 --dry-run < "$one" >/dev/null 2>&1; then
+                        echo "  [SKIP] $(basename $one) (already applied)"
+                        continue
+                    fi
+
+                    # Try to apply
+                    if patch -p1 < "$one"; then
+                        echo "  [OK]   $(basename $one)"
                     else
                         echo "
-
-Fatal: failed to apply patch : $one
+Fatal: failed to apply patch: $one
+Hint: Check if this patch is already in the postgres-pglite fork
 "
                         exit 37
                     fi
                 done
             fi
+        }
+
+        for category in \
+            postgresql-debug \
+            postgresql-emscripten \
+            postgresql-wasi \
+            postgresql-pglite
+        do
+            echo "=== Applying $category patches ==="
+            # Apply common patches first
+            apply_patches_from_dir "$PATCHES_COMMON" "$category"
+            # Apply version-specific patches
+            apply_patches_from_dir "$PATCHES_VERSION" "$category"
+            # Apply legacy patches (patches-REL_XX_X_WASM)
+            apply_patches_from_dir "$PATCHES_LEGACY" "$category"
         done
+
         touch postgresql-${PG_BRANCH}.patched
         popd # postgresql-${PG_BRANCH}
     fi
@@ -166,6 +195,10 @@ else
         export EXT=wasi
         cat > ${PGROOT}/config.site <<END
 ac_cv_exeext=.wasi
+cross_compiling=yes
+ac_cv_prog_cc_cross=yes
+ac_cv_prog_cc_works=yes
+ac_cv_prog_cc_g=yes
 END
         if $GETZIC
         then
@@ -345,7 +378,7 @@ rm -vf libp*.a src/backend/postgres*
 
 if $WASI
 then
-    WASI_CFLAGS="${CC_PGLITE}" emmake make AR=\${WASISDK}/upstream/bin/llvm-ar PORTNAME=$BUILD $BUILD=1 -j \${NCPU:-$NCPU} \$@
+    WASI_CFLAGS="${CC_PGLITE}" emmake make -k AR=\${WASISDK}/upstream/bin/llvm-ar PORTNAME=$BUILD $BUILD=1 -j \${NCPU:-$NCPU} \$@
 else
     cat $SDKROOT/VERSION
     EMCC_CFLAGS="${CC_PGLITE} ${EMCC_NODE}" emmake make AR=\${EMSDK}/upstream/bin/llvm-ar PORTNAME=emscripten $BUILD=1 -j \${NCPU:-$NCPU} \$@

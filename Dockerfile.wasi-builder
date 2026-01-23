@@ -1,0 +1,71 @@
+FROM --platform=linux/arm64 debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SDKROOT=/tmp/sdk
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tar file liblz4-tool xz-utils git patch bison flex \
+    findutils binutils coreutils curl perl wget \
+    nodejs make autoconf automake libtool pkg-config python3 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install wasmtime
+RUN wget -q https://github.com/bytecodealliance/wasmtime/releases/download/v33.0.0/wasmtime-v33.0.0-aarch64-linux.tar.xz -O /tmp/wasmtime.tar.xz \
+    && cd /tmp && tar xf wasmtime.tar.xz \
+    && mkdir -p /tmp/sdk/devices/aarch64/usr/bin \
+    && mv /tmp/wasmtime-v33.0.0-aarch64-linux/wasmtime /tmp/sdk/devices/aarch64/usr/bin/ \
+    && ln -sf /tmp/sdk/devices/aarch64/usr/bin/wasmtime /usr/local/bin/wasmtime \
+    && rm -rf /tmp/wasmtime*
+
+# Download and extract the python-wasm-sdk
+RUN cd / && wget -q https://github.com/pygame-web/portable-sdk/releases/download/3.1.74.7bi/python3.13-wasm-sdk-alpine-3.21.tar.lz4 -O /tmp/sdk.tar.lz4 \
+    && cd / && cat /tmp/sdk.tar.lz4 | lz4 -d | tar xf - \
+    && rm /tmp/sdk.tar.lz4
+
+# Copy and extract wasi-sdk from build context
+COPY portable/wasi-sdk-25.tar.xz /tmp/
+COPY portable/wasi-sdk-25.0-aarch64-linux.tar.xz /tmp/
+RUN cd / && tar xf /tmp/wasi-sdk-25.tar.xz \
+    && tar xf /tmp/wasi-sdk-25.0-aarch64-linux.tar.xz \
+    && mv /tmp/sdk/wasisdk/wasi-sdk-25.0-aarch64-linux/* /tmp/sdk/wasisdk/upstream/ \
+    && rm /tmp/wasi-sdk-*.tar.xz \
+    && cd /tmp/sdk/wasisdk/upstream/bin \
+    && ln -sf clang-19 clang \
+    && ln -sf clang-19 clang++ \
+    && ln -sf clang clang-cpp \
+    && ln -sf lld ld.lld \
+    && ln -sf lld wasm-ld \
+    && ln -sf llvm-ar ar \
+    && ln -sf llvm-objcopy strip \
+    && ln -sf llvm-ar ranlib
+
+# Download official wasi-sdk for missing clang libs (builtins, headers)
+RUN wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-25/wasi-sdk-25.0-arm64-linux.tar.gz -O /tmp/wasi-sdk.tar.gz \
+    && cd /tmp && tar xzf wasi-sdk.tar.gz \
+    && cp -r /tmp/wasi-sdk-25.0-arm64-linux/lib/clang /tmp/sdk/wasisdk/upstream/lib/ \
+    && rm -rf /tmp/wasi-sdk*
+
+# Create proper emconfigure wrapper for cross-compilation
+RUN echo '#!/bin/bash\nCONFIGURE=true "$@" --build=aarch64-linux-gnu --host=wasm32-wasi --with-template=wasi' > /tmp/sdk/wasisdk/bin/emconfigure \
+    && chmod +x /tmp/sdk/wasisdk/bin/emconfigure
+
+# Patch wasm32-wasi-shell.sh to use aarch64 instead of x86_64
+RUN sed -i 's|/tmp/sdk/devices/x86_64|/tmp/sdk/devices/aarch64|g' /tmp/sdk/wasm32-wasi-shell.sh \
+    && ln -sf /usr/bin/python3 /tmp/sdk/devices/aarch64/usr/bin/python3 \
+    && ln -sf /usr/bin/python3 /tmp/sdk/devices/aarch64/usr/bin/python3.13
+
+# Pre-create config.site with cross-compile variables and sdk_port.c router
+RUN mkdir -p /tmp/pglite/include \
+    && cat > /tmp/pglite/config.site <<EOF
+ac_cv_exeext=.wasi
+cross_compiling=yes
+ac_cv_prog_cc_cross=yes
+ac_cv_prog_cc_works=yes
+ac_cv_prog_cc_g=yes
+ac_cv_c_compiler_gnu=yes
+EOF
+# Create sdk_port.c that includes the wasi-specific implementation
+RUN echo '#include "sdk_port-wasi.c"' > /tmp/pglite/include/sdk_port.c
+
+WORKDIR /workspace
