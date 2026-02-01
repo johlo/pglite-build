@@ -508,6 +508,8 @@ then
 if ./pglite-${PG_BRANCH}/build.sh
 then
     echo "TODO: tests"
+else
+    echo "pglite linking failed"; exit 545
 fi
 END
 
@@ -598,10 +600,11 @@ if [ -d pglite ]
 then
    echo -n
 else
+    shopt -s nullglob
     for archive in ${PG_DIST_EXT}/*.tar
     do
         echo "    packing extension $archive (docker build)"
         gzip -f -k -9 $archive
     done
+    shopt -u nullglob
 fi
-

@@ -4,6 +4,11 @@
 #include "postgres.h"
 
 #include "fmgr.h"
+#include <stdlib.h>
+
+#if __has_include("wasi_hstore_syms.h")
+#  include "wasi_hstore_syms.h"
+#endif
 
 typedef struct dict_entry_s {
     const char *key;
@@ -156,6 +161,13 @@ dlsym(void *__restrict handle, const char *__restrict symbol) {
         goto report;
     }
 
+#ifdef HAVE_WASI_HSTORE_SYMS
+    sym = wasi_hstore_dlsym(symbol);
+    if (sym) {
+        goto report;
+    }
+#endif
+
     if ( !strcmp(symbol, "_PG_init") )
         // sym = &STUB__PG_init;
         return &STUB__PG_init;
@@ -192,7 +204,15 @@ dlsym(void *__restrict handle, const char *__restrict symbol) {
 
 report:;
     fprintf(stderr, "void *dlsym(void *handle = %p, const char *symbol = %s) => %p\n", handle, symbol, sym);
+    if (!sym) {
+        static int dbg = -1;
+        if (dbg < 0) {
+            const char *env = getenv("PGLITE_DLSYM_DEBUG");
+            dbg = (env && *env && *env != '0') ? 1 : 0;
+        }
+        if (dbg && symbol && (!strncmp(symbol, "pg_finfo_", 9) || strstr(symbol, "hstore"))) {
+            fprintf(stderr, "dlsym missing symbol: %s\n", symbol);
+        }
+    }
     return sym;
 }
-
-

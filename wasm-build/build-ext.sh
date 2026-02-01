@@ -20,7 +20,13 @@ then
  ltree_plpython sepgsql bool_plperl start-scripts\
  pgcrypto uuid-ossp xml2\
  ]"
-    SKIP_CONTRIB=true
+    WASI_CONTRIB_ALLOW=${WASI_CONTRIB_ALLOW:-"hstore"}
+    if [ -z "$WASI_CONTRIB_ALLOW" ]
+    then
+        SKIP_CONTRIB=true
+    else
+        SKIP_CONTRIB=false
+    fi
 else
 
     # TEMP FIX for SDK
@@ -49,6 +55,18 @@ do
     if [ -d "$extdir" ]
     then
         ext=$(echo -n $extdir|cut -d/ -f3)
+        if $WASI
+        then
+            if ! echo " ${WASI_CONTRIB_ALLOW} " | grep -q " ${ext} "
+            then
+                echo "
+
+    skipping extension $ext (not in WASI_CONTRIB_ALLOW)
+
+                "
+                continue
+            fi
+        fi
         if echo -n $SKIP|grep -q "$ext "
         then
             echo "
@@ -80,7 +98,10 @@ do
             fi
             popd
 
-            python3 ${PORTABLE}/pack_extension.py 2>&1 >/dev/null
+            if ! $WASI
+            then
+                python3 ${PORTABLE}/pack_extension.py 2>&1 >/dev/null
+            fi
 
         fi
     fi
@@ -114,24 +135,34 @@ echo "
 #            fi
 #        fi
 
-if [ -f ${PG_BUILD_DUMPS}/dump.vector ]
+if $WASI && [ "${WASI_EXTRA_EXT:-false}" = "false" ]
 then
     echo "
+
+    *   WASI: skipping extra extensions (set WASI_EXTRA_EXT=true to enable)
+
+"
+else
+    if [ -f ${PG_BUILD_DUMPS}/dump.vector ]
+    then
+        echo "
 
     *   NOT rebuilding extra extensions ( found ${PG_BUILD_DUMPS}/dump.vector )
 
 "
-else
+    else
 
-    for extra_ext in ./extra/*.sh
-    do
-        LOG=$PG_DIST_EXT/$(basename ${extra_ext}).log
-        echo "====  ${extra_ext} : $LOG ===="
+        for extra_ext in ./extra/*.sh
+        do
+            LOG=$PG_DIST_EXT/$(basename ${extra_ext}).log
+            echo "====  ${extra_ext} : $LOG ===="
 
-        ${extra_ext} > $LOG || exit 112
+            ${extra_ext} > $LOG || exit 112
 
-        python3 wasm-build/pack_extension.py
-    done
-
-
+            if ! $WASI
+            then
+                python3 wasm-build/pack_extension.py
+            fi
+        done
+    fi
 fi

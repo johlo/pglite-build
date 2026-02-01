@@ -41,6 +41,52 @@ GLOBAL_BASE_B=$(python3 -c "print(${CMA_MB}*1024*1024)")
 
 if $WASI
 then
+    WASI_HSTORE=${WASI_HSTORE:-true}
+    HSTORE_LIB=""
+    HSTORE_OBJS=""
+    if ${WASI_HSTORE}
+    then
+        if [ -d "${PGSRC}/contrib/hstore" ]
+        then
+            python3 ${WORKSPACE}/wasm-build/gen_wasi_ext_syms.py \
+                --ext hstore \
+                --sql-dir "${PGSRC}/contrib/hstore" \
+                --out "${PGROOT}/include/wasi_hstore_syms.h"
+            if [ ! -s "${PGROOT}/include/wasi_hstore_syms.h" ] || ! grep -Eq "wasi_hstore_syms|pg_finfo_" "${PGROOT}/include/wasi_hstore_syms.h"
+            then
+                echo "wasi hstore symbols header is empty: ${PGROOT}/include/wasi_hstore_syms.h"
+                exit 173
+            fi
+        else
+            echo "hstore contrib sources not found at ${PGSRC}/contrib/hstore"
+            exit 171
+        fi
+
+        HSTORE_BUILD_DIR="${PG_BUILD}/${BUILD}/contrib/hstore"
+        for candidate in \
+            ${HSTORE_BUILD_DIR}/libhstore.a \
+            ${HSTORE_BUILD_DIR}/hstore.a \
+            ${HSTORE_BUILD_DIR}/.libs/libhstore.a \
+            ${HSTORE_BUILD_DIR}/*.a
+        do
+            if [ -f "$candidate" ]
+            then
+                HSTORE_LIB="$candidate"
+                break
+            fi
+        done
+
+        if [ -z "${HSTORE_LIB}" ]
+        then
+            HSTORE_OBJS=$(ls -1 ${HSTORE_BUILD_DIR}/*.o 2>/dev/null | tr '\n' ' ')
+        fi
+
+        if [ -z "${HSTORE_LIB}" ] && [ -z "${HSTORE_OBJS}" ]
+        then
+            echo "hstore library/objects not found in ${HSTORE_BUILD_DIR} (set WASI_HSTORE=false to skip)"
+            exit 172
+        fi
+    fi
 
 
     echo "
@@ -101,6 +147,8 @@ ________________________________________________________
              $LINK_ICU \
              ${PG_BUILD}/${BUILD}/src/backend/snowball/libdict_snowball.a \
              ${PG_BUILD}/${BUILD}/src/pl/plpgsql/src/libplpgsql.a \
+             ${HSTORE_LIB} \
+             ${HSTORE_OBJS} \
              -lxml2 -lz
         else
             echo "compilation of libpglite ${BUILD} support failed"
@@ -111,12 +159,53 @@ ________________________________________________________
             echo "building minimal wasi FS"
             cp ${PG_DIST}/pglite.wasi ${PGROOT}/bin/
             touch ${PGROOT}/bin/initdb ${PGROOT}/bin/postgres
-            tar -cvJ --files-from=${WORKSPACE}/wasmfs.txt > ${PG_DIST}/pglite-wasi.tar.xz
+            WASMFS_LIST="${WORKSPACE}/wasmfs.txt"
+            if [ ! -f "$WASMFS_LIST" ]
+            then
+                echo "missing wasmfs list: $WASMFS_LIST"
+                exit 1
+            fi
+            WASMFS_TAR_LIST="$(mktemp)"
+            while IFS= read -r path
+            do
+                if [ -z "$path" ]
+                then
+                    continue
+                fi
+                case "$path" in
+                    *[\*\?\[]* )
+                        for match in $path
+                        do
+                            if [ ! -e "$match" ]
+                            then
+                                echo "wasmfs: missing $match"
+                                continue
+                            fi
+                            printf '%s\n' "${match#/}" >> "$WASMFS_TAR_LIST"
+                        done
+                        ;;
+                    * )
+                        if [ ! -e "$path" ]
+                        then
+                            echo "wasmfs: missing $path"
+                            continue
+                        fi
+                        printf '%s\n' "${path#/}" >> "$WASMFS_TAR_LIST"
+                        ;;
+                esac
+            done < "$WASMFS_LIST"
+            tar -C / --use-compress-program="gzip -1" -cvf ${PG_DIST}/pglite-wasi.tar.gz --files-from="$WASMFS_TAR_LIST"
+            rm -f "$WASMFS_TAR_LIST"
             mkdir -p ${PGL_BUILD_NATIVE}
             cat > ${PGL_BUILD_NATIVE}/pglite-native.sh <<END
 mkdir -p ${PGL_BUILD_NATIVE} ${PGL_DIST_NATIVE}
 pushd ${PGL_BUILD_NATIVE}
-$(cat /tmp/portable.opts)
+END
+            if [ -f /tmp/portable.opts ]
+            then
+                cat /tmp/portable.opts >> ${PGL_BUILD_NATIVE}/pglite-native.sh
+            fi
+            cat >> ${PGL_BUILD_NATIVE}/pglite-native.sh <<END
     export WORKSPACE=${WORKSPACE}
     export WASM2C=pglite
     export PYBUILD=3.13
@@ -331,4 +420,3 @@ fi
 
 
 echo "pglite/build($BUILD): end"
-
