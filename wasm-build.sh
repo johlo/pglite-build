@@ -57,7 +57,7 @@ export PGUSER=${PGUSER:-postgres}
 
 # can override from cmd line
 export WASI=${WASI:-false}
-export WASI_SDK=${WASI_SDK:-25.0}
+export WASI_SDK=${WASI_SDK:-29.0}
 export PYBUILD=${PYBUILD:-3.13}
 export NATIVE=${NATIVE:-false}
 
@@ -175,6 +175,72 @@ pushd ${SDKROOT}
     if ${WASI}
     then
         . wasisdk/wasisdk_env.sh
+        HOTFIX_PATCH=${WASISDK:-${SDKROOT}/wasisdk}/hotfix/patch.h
+        if [ -f "$HOTFIX_PATCH" ]
+        then
+            python3 - "$HOTFIX_PATCH" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+dst = src
+
+# wasi-sdk >= 29 no longer uses __sdk_fd_seek in wasi/api.h.
+dst = dst.replace("__sdk_fd_seek(", "__wasi_fd_seek(")
+
+# Drop stale local prototype that conflicts with wasi/api.h.
+dst = re.sub(
+    r'__attribute__\(\(import_module\("wasi_snapshot_preview1"\)\)\) \\\n'
+    r'__attribute__\(\(import_name\("__wasi_fd_seek"\)\)\) \\\n'
+    r'extern int __wasi_fd_seek\(int fd,int  offset,int  whence, unsigned long long \*retptr\);\n',
+    "",
+    dst,
+)
+
+# wasi-sdk >= 29 provides getrusage declaration in sys/resource.h; the
+# legacy macro redirect in hotfix patch.h causes a type conflict.
+dst = re.sub(
+    r'\n\s*SCOPE int\s+sdk_getrusage\(int who, void \*usage\)\s*\{\s*'
+    r'\(void\)who;\s*\(void\)usage;\s*return -1;\s*\}\s*'
+    r'#\s*define getrusage\(who, usage\) sdk_getrusage\(who, usage\)\s*\n',
+    "\n",
+    dst,
+    flags=re.S,
+)
+
+# Prefer wasi-sdk's process-clocks implementation.
+dst = re.sub(
+    r'\n\s*SCOPE\s+[^{;\n]*\bgetrusage\s*\([^)]*\)\s*\{.*?\}\s*'
+    r'(?:#\s*define\s+getrusage[^\n]*\n)?',
+    "\n",
+    dst,
+    flags=re.S,
+)
+dst = re.sub(
+    r'\n\s*SCOPE\s+[^{;\n]*\b__clock\s*\([^)]*\)\s*\{.*?\}\s*'
+    r'(?:#\s*define\s+clock[^\n]*\n)?',
+    "\n",
+    dst,
+    flags=re.S,
+)
+dst = re.sub(
+    r'\n\s*#\s*define\s+getrusage\([^\n]*\)\s*[^\n]*\n',
+    "\n",
+    dst,
+)
+
+# Ensure wasi/api.h is included before sdk_fdtell uses __wasi_fd_seek.
+sdk_fdtell_idx = dst.find("SCOPE long sdk_fdtell")
+first_wasi_api_idx = dst.find("#   include <wasi/api.h>")
+if sdk_fdtell_idx != -1 and (first_wasi_api_idx == -1 or first_wasi_api_idx > sdk_fdtell_idx):
+    dst = re.sub(r'(#\s*include <errno.h>\n)', r'\1#   include <wasi/api.h>\n', dst, count=1)
+
+if dst != src:
+    p.write_text(dst, encoding="utf-8")
+PY
+        fi
         if ${PORTABLE}/sdk.sh
         then
             echo "$PORTABLE : sdk check passed (wasi)"

@@ -141,8 +141,10 @@ else
         UUID=""
 
  # -lwasi-emulated-signal -D_WASI_EMULATED_SIGNAL -lwasi-emulated-getpid -D_WASI_EMULATED_GETPID
-        WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread -lwasi-emulated-process-clocks"
-        WASM_CFLAGS="-I${WASISDK}/hotfix -DSDK_PORT=${PREFIX}/include/sdk_port-wasi.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN -D_WASI_EMULATED_PROCESS_CLOCKS"
+        # process-clocks is injected by the wasi-sdk cc wrapper; adding it here
+        # pulls symbols into libpgcore.o and causes duplicate-symbol link failures.
+        WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread"
+        WASM_CFLAGS="-I${WASISDK}/hotfix -DSDK_PORT=${PREFIX}/include/sdk_port-wasi.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN"
         export MAIN_MODULE=""
 
     else
