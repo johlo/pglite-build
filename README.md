@@ -1,7 +1,7 @@
 Typical use:
 
 
-wasi sdk 25 + plsql+vector (static) rebuild:
+wasi sdk 29 + plsql+vector (static) rebuild:
 ```sh
 rm /tmp/fs/tmp/pglite/dumps/dump.vector
 /tmp/fs/tmp/pglite/pg.wasi.installed
@@ -31,5 +31,4 @@ you should find pglite.wasi as there too in case of wasi build.
 WIP : how to use (lib)pglite.wasi :
 
 see https://github.com/electric-sql/pglite-bindings
-
 

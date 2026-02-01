@@ -488,13 +488,35 @@ Fatal: failed to apply patch : $one
             [ -f $tmpfile ] || wget -q $SDK_URL -O$tmpfile
             cat $tmpfile | tar x --use-compress-program=lz4
 
-            # unpack wasi sdk  (common)
-            tar xf $PORTABLE/wasi-sdk-25.tar.xz
-            # unpack wasi sdk ( binary )
-            tar xf $PORTABLE/wasi-sdk-25.0-$(arch)-linux.tar.xz
+            WASI_SDK=${WASI_SDK:-29.0}
+            WASI_SDK_MAJOR=${WASI_SDK%%.*}
+            WASI_COMMON_ARCHIVE=${WASI_COMMON_ARCHIVE:-$PORTABLE/wasi-sdk-25.tar.xz}
+            WASI_BIN_ARCHIVE=${WASI_BIN_ARCHIVE:-$PORTABLE/wasi-sdk-${WASI_SDK}-$(arch)-linux.tar.xz}
 
-            # install arch binaries to sdk wasi sdk root
-            mv tmp/sdk/wasisdk/wasi-sdk-25.0-$(arch)-linux/* tmp/sdk/wasisdk/upstream/
+            # unpack wasi sdk shell/wrapper files
+            tar xf $WASI_COMMON_ARCHIVE
+
+            if [ -f "$WASI_BIN_ARCHIVE" ]
+            then
+                # local binary archive cache
+                tar xf $WASI_BIN_ARCHIVE
+                mv tmp/sdk/wasisdk/wasi-sdk-${WASI_SDK}-$(arch)-linux/* tmp/sdk/wasisdk/upstream/
+            else
+                # fallback to official wasi-sdk release archive
+                if [ "$(arch)" = "aarch64" ]
+                then
+                    WASI_DL_ARCH=arm64
+                else
+                    WASI_DL_ARCH=$(arch)
+                fi
+                WASI_BIN_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_MAJOR}/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux.tar.gz
+                wget -q $WASI_BIN_URL -O tmp/wasi-sdk.tar.gz
+                tar xzf tmp/wasi-sdk.tar.gz -C tmp
+                rm -f tmp/sdk/wasisdk/upstream/share/wasi-sysroot/lib/wasm32-wasi
+                rm -f tmp/sdk/wasisdk/upstream/share/wasi-sysroot/include/wasm32-wasi
+                cp -a tmp/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux/. tmp/sdk/wasisdk/upstream/
+                rm -rf tmp/wasi-sdk.tar.gz tmp/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux
+            fi
 
             if [ -f $CONTAINER_PATH/usr/bin/python3 ]
             then

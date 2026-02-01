@@ -6,7 +6,7 @@ This document describes the changes made to enable building PostgreSQL 17.4 to W
 
 The goal was to compile the `pglite-build` repository (PostgreSQL 17.4 compiled to WebAssembly) using a Docker-based build environment on macOS (ARM64/Apple Silicon). The build uses:
 
-- **wasi-sdk 25.0** - Clang-19 based toolchain for WASI compilation
+- **wasi-sdk 29.0** - Clang-based toolchain for WASI compilation
 - **python-wasm-sdk** - pygame-web's SDK containing toolchains and hotfix headers
 - **wasmtime** - WebAssembly runtime for running WASI binaries during build
 
@@ -35,9 +35,9 @@ After successful build:
 **Details:**
 - Based on `debian:bookworm-slim` for ARM64
 - Installs python-wasm-sdk (3.1.74.7bi) with pre-built toolchains
-- Installs wasi-sdk 25.0 (both the SDK structure and ARM64 binaries)
+- Installs wasi-sdk 29.0 (both the SDK structure and ARM64 binaries)
 - Installs wasmtime 33.0.0 for running WASI binaries during build (e.g., zic timezone compiler)
-- Creates symlinks for clang tools (clang-19 → clang, llvm-ar → ar, etc.)
+- Creates symlinks for clang tools (versioned clang → clang, llvm-ar → ar, etc.)
 - Sets up cross-compilation config.site for autoconf
 
 ```dockerfile
