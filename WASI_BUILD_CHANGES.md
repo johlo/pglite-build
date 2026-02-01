@@ -18,7 +18,7 @@ After successful build:
 |------|------|-------------|
 | `pglite.wasi` | 23MB | Main PostgreSQL WASI binary |
 | `pg_dump.wasi` | 1.6MB | pg_dump utility |
-| `pglite-wasi.tar.xz` | 5.1MB | PostgreSQL data files (share, lib, etc.) |
+| `pglite-wasi.tar.gz` | 5.1MB | PostgreSQL data files (share, lib, etc.) |
 
 ---
 

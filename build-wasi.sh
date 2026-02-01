@@ -55,7 +55,7 @@ if [ -f "output/pglite.wasi" ]; then
     echo "BUILD SUCCESSFUL"
     echo ""
     echo "Output files:"
-    ls -lh output/*.wasi output/*.tar.xz 2>/dev/null
+    ls -lh output/*.wasi output/*.tar.gz 2>/dev/null
     echo ""
     echo "Verify: file output/pglite.wasi"
     file output/pglite.wasi

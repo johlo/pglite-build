@@ -121,7 +121,7 @@ then
 
     [ -f $DIST_PATH/pglite.wasi ] &&  cp -vf $DIST_PATH/pglite.wasi $PG_DIST_WEB/
 
-    [ -f $DIST_PATH/pglite-wasi.tar.xz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.xz $PG_DIST_WEB/
+    [ -f $DIST_PATH/pglite-wasi.tar.gz ] &&  cp -vf $DIST_PATH/pglite-wasi.tar.gz $PG_DIST_WEB/
 
 
     if $WASI
