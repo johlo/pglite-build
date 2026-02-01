@@ -477,14 +477,16 @@ __attribute__ ((export_name("pgl_backend")))
 
         optind = 1;
         BootstrapModeMain(boot_argc, boot_argv, false);
-        fclose(stdin);
+        if (dup2(saved_stdin, STDIN_FILENO) < 0) {
+            PDEBUG("# 476: failed to restore stdin from saved fd");
+        }
+        close(saved_stdin);
 #if PGDEBUG
         puts("BOOT FILE:");
         puts(IDB_PIPE_BOOT);
 #else
         remove(IDB_PIPE_BOOT);
 #endif
-        stdin = fdopen(saved_stdin, "r");
 
         PDEBUG("# 479: initdb faking shutdown to complete WAL/OID states");
         pg_proc_exit(66);
