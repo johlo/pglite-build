@@ -1,0 +1,20 @@
+diff --git a/src/include/libpq/pqcomm.h b/src/include/libpq/pqcomm.h
+index 527735e..b534315 100644
+--- a/src/include/libpq/pqcomm.h
++++ b/src/include/libpq/pqcomm.h
+@@ -57,7 +57,15 @@ typedef struct
+  * a useful way when the socket pathname is too long, we have to test for
+  * this explicitly, instead of just letting the subroutine return an error.)
+  */
++#if defined(__wasi__)
++/*
++ * Some wasi-sdk sys/un.h variants do not expose sun_path in sockaddr_un.
++ * Keep a conservative fixed limit for frontend path validation.
++ */
++#define UNIXSOCK_PATH_BUFLEN 108
++#else
+ #define UNIXSOCK_PATH_BUFLEN sizeof(((struct sockaddr_un *) NULL)->sun_path)
++#endif
+ 
+ /*
+  * A host that looks either like an absolute path or starts with @ is

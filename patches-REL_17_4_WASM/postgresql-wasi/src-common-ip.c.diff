@@ -1,0 +1,63 @@
+diff --git a/src/common/ip.c b/src/common/ip.c
+index b5ba023..756fe1f 100644
+--- a/src/common/ip.c
++++ b/src/common/ip.c
+@@ -59,7 +59,11 @@ pg_getaddrinfo_all(const char *hostname, const char *servname,
+ 	*result = NULL;
+ 
+ 	if (hintp->ai_family == AF_UNIX)
++#if defined(__wasi__)
++		return EAI_FAIL;
++#else
+ 		return getaddrinfo_unix(servname, hintp, result);
++#endif
+ 
+ 	/* NULL has special meaning to getaddrinfo(). */
+ 	rc = getaddrinfo((!hostname || hostname[0] == '\0') ? NULL : hostname,
+@@ -83,6 +87,10 @@ pg_freeaddrinfo_all(int hint_ai_family, struct addrinfo *ai)
+ {
+ 	if (hint_ai_family == AF_UNIX)
+ 	{
++#if defined(__wasi__)
++		if (ai != NULL)
++			freeaddrinfo(ai);
++#else
+ 		/* struct was built by getaddrinfo_unix (see pg_getaddrinfo_all) */
+ 		while (ai != NULL)
+ 		{
+@@ -92,6 +100,7 @@ pg_freeaddrinfo_all(int hint_ai_family, struct addrinfo *ai)
+ 			free(p->ai_addr);
+ 			free(p);
+ 		}
++#endif
+ 	}
+ 	else
+ 	{
+@@ -119,10 +128,14 @@ pg_getnameinfo_all(const struct sockaddr_storage *addr, int salen,
+ 	int			rc;
+ 
+ 	if (addr && addr->ss_family == AF_UNIX)
++#if defined(__wasi__)
++		rc = EAI_FAIL;
++#else
+ 		rc = getnameinfo_unix((const struct sockaddr_un *) addr, salen,
+ 							  node, nodelen,
+ 							  service, servicelen,
+ 							  flags);
++#endif
+ 	else
+ 		rc = getnameinfo((const struct sockaddr *) addr, salen,
+ 						 node, nodelen,
+@@ -149,6 +162,7 @@ pg_getnameinfo_all(const struct sockaddr_storage *addr, int salen,
+  *		  AI_CANONNAME is not supported.
+  * -------
+  */
++#if !defined(__wasi__)
+ static int
+ getaddrinfo_unix(const char *path, const struct addrinfo *hintsp,
+ 				 struct addrinfo **result)
+@@ -260,3 +274,4 @@ getnameinfo_unix(const struct sockaddr_un *sa, int salen,
+ 
+ 	return 0;
+ }
++#endif /* !defined(__wasi__) */

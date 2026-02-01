@@ -1,0 +1,23 @@
+diff --git a/src/interfaces/libpq/fe-connect.c b/src/interfaces/libpq/fe-connect.c
+index bfc9b49..16745c7 100644
+--- a/src/interfaces/libpq/fe-connect.c
++++ b/src/interfaces/libpq/fe-connect.c
+@@ -2789,6 +2789,10 @@ PDEBUG("# 2615: keep_going -> try_next_host ");
+ 				break;
+ 
+ 			case CHT_UNIX_SOCKET:
++#if defined(__wasi__)
++				libpq_append_conn_error(conn, "Unix-domain sockets are not supported in this WASI build");
++				goto keep_going;
++#else
+ 				hint.ai_family = AF_UNIX;
+ 				UNIXSOCK_PATH(portstr, thisport, ch->host);
+ 				if (strlen(portstr) >= UNIXSOCK_PATH_BUFLEN)
+@@ -2811,6 +2815,7 @@ PDEBUG("# 2615: keep_going -> try_next_host ");
+ 											portstr, gai_strerror(ret));
+ 					goto keep_going;
+ 				}
++#endif
+ 				break;
+ 		}
+ 
