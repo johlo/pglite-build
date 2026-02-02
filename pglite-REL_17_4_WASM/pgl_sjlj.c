@@ -1,6 +1,3 @@
-#if defined(__wasi__)
-    PDEBUG("# 2:" __FILE__ ": sjlj exception handler off");
-#else
 	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
 	{
 #if !defined(INITDB_SINGLE)
@@ -69,8 +66,6 @@
        } else
             goto wire_flush;
 #endif
-    }
+	}
 
 	PG_exception_stack = &local_sigjmp_buf;
-#endif
-

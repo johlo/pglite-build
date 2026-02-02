@@ -159,6 +159,13 @@
 +extern int sigismember(const sigset_t *set, int signum);
 +extern int sigpending(sigset_t *set);
 +
++/* WASI shim: make sigsetjmp/siglongjmp available via libc setjmp. */
++#include <setjmp.h>
++#ifndef sigsetjmp
++#define sigsetjmp(env, savesigs) setjmp(env)
++#define siglongjmp(env, val) longjmp(env, val)
++#endif
++
 +
 +// ****************************************************************************************
 +// ****************************************************************************************

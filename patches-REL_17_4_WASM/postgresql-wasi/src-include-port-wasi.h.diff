@@ -1,0 +1,12 @@
+diff --git a/src/include/port/wasi.h b/src/include/port/wasi.h
+index 0f43133..cc36e2f 100644
+--- a/src/include/port/wasi.h
++++ b/src/include/port/wasi.h
+@@ -74,6 +74,7 @@
+-#include <setjmp.h>
++/* WASI shim: make sigsetjmp/siglongjmp available via libc setjmp. */
++#include <setjmp.h>
+ #ifndef sigsetjmp
+ #define sigsetjmp(env, savesigs) setjmp(env)
+ #define siglongjmp(env, val) longjmp(env, val)
+ #endif
