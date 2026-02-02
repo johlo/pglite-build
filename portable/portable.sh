@@ -512,8 +512,8 @@ Fatal: failed to apply patch : $one
                 WASI_BIN_URL=https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_MAJOR}/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux.tar.gz
                 wget -q $WASI_BIN_URL -O tmp/wasi-sdk.tar.gz
                 tar xzf tmp/wasi-sdk.tar.gz -C tmp
-                rm -f tmp/sdk/wasisdk/upstream/share/wasi-sysroot/lib/wasm32-wasi
-                rm -f tmp/sdk/wasisdk/upstream/share/wasi-sysroot/include/wasm32-wasi
+                rm -rf tmp/sdk/wasisdk/upstream/share/wasi-sysroot/lib/wasm32-wasi
+                rm -rf tmp/sdk/wasisdk/upstream/share/wasi-sysroot/include/wasm32-wasi
                 cp -a tmp/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux/. tmp/sdk/wasisdk/upstream/
                 rm -rf tmp/wasi-sdk.tar.gz tmp/wasi-sdk-${WASI_SDK}-${WASI_DL_ARCH}-linux
             fi

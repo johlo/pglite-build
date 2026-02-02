@@ -88,6 +88,27 @@ then
         fi
     fi
 
+    WASI_LDFLAGS=""
+    WASI_SYSROOT_LIB="${WASISDK}/upstream/share/wasi-sysroot/lib/wasm32-wasip1"
+    if [ -d "$WASI_SYSROOT_LIB" ]
+    then
+        WASI_LDFLAGS="${WASI_LDFLAGS} -L${WASI_SYSROOT_LIB} -lsetjmp"
+    fi
+    CLANG_RT_DIR="$(ls -d ${WASISDK}/upstream/lib/clang/*/lib/wasm32-unknown-wasip1 2>/dev/null | sort -V | tail -n1)"
+    if [ -n "$CLANG_RT_DIR" ] && [ -d "$CLANG_RT_DIR" ]
+    then
+        for rtlib in libclang_rt.builtins.a libclang_rt.builtins-wasm32.a libclang_rt.builtins-wasm32-wasi.a
+        do
+            if [ -f "${CLANG_RT_DIR}/${rtlib}" ]
+            then
+                rtname="${rtlib#lib}"
+                rtname="${rtname%.a}"
+                WASI_LDFLAGS="${WASI_LDFLAGS} -L${CLANG_RT_DIR} -l${rtname}"
+                break
+            fi
+        done
+    fi
+
 
     echo "
 _______________________ PG_BRANCH=${PG_BRANCH} _____________________
@@ -149,6 +170,7 @@ ________________________________________________________
              ${PG_BUILD}/${BUILD}/src/pl/plpgsql/src/libplpgsql.a \
              ${HSTORE_LIB} \
              ${HSTORE_OBJS} \
+             ${WASI_LDFLAGS} \
              -lxml2 -lz
         else
             echo "compilation of libpglite ${BUILD} support failed"

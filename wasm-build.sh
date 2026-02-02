@@ -176,6 +176,7 @@ pushd ${SDKROOT}
     then
         . wasisdk/wasisdk_env.sh
         HOTFIX_PATCH=${WASISDK:-${SDKROOT}/wasisdk}/hotfix/patch.h
+        WASI_CC_WRAPPER=${WASISDK:-${SDKROOT}/wasisdk}/bin/cc
         if [ -f "$HOTFIX_PATCH" ]
         then
             python3 - "$HOTFIX_PATCH" <<'PY'
@@ -231,11 +232,82 @@ dst = re.sub(
     dst,
 )
 
+# Keep real setjmp/siglongjmp behavior so PG_TRY/PG_CATCH works on WASI.
+dst = re.sub(
+    r'\n// setjmp.*?#\s*define\s+siglongjmp\(env,\s*val\)\s+sdk_siglongjmp\(env,\s*val\)\s*\n',
+    "\n// setjmp\n#   include <setjmp.h>\n",
+    dst,
+    flags=re.S,
+)
+# Ensure we do not force wasm exception-handling in the hotfix header.
+dst = re.sub(r'\n#\s*define\s+__wasm_exception_handling__\s*\n', "\n", dst)
+
 # Ensure wasi/api.h is included before sdk_fdtell uses __wasi_fd_seek.
 sdk_fdtell_idx = dst.find("SCOPE long sdk_fdtell")
 first_wasi_api_idx = dst.find("#   include <wasi/api.h>")
 if sdk_fdtell_idx != -1 and (first_wasi_api_idx == -1 or first_wasi_api_idx > sdk_fdtell_idx):
     dst = re.sub(r'(#\s*include <errno.h>\n)', r'\1#   include <wasi/api.h>\n', dst, count=1)
+
+if dst != src:
+    p.write_text(dst, encoding="utf-8")
+PY
+        fi
+        if [ -f "$WASI_CC_WRAPPER" ]
+        then
+            python3 - "$WASI_CC_WRAPPER" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+dst = src
+
+# Ensure SJLJ compiler flag is present (linker uses default runtimes).
+def add_flag(defs, flag):
+    return defs if flag in defs else f"{defs} {flag}"
+
+m = re.search(r'WASI_DEF\\s*=\\s*\"([^\"]*)\"', dst)
+if m:
+    defs = m.group(1)
+    defs = add_flag(defs, "-mllvm -wasm-enable-sjlj")
+    defs = add_flag(defs, "-mllvm --wasm-enable-eh")
+    defs = add_flag(defs, "-mllvm --wasm-use-legacy-eh=false")
+    dst = dst[:m.start(1)] + defs + dst[m.end(1):]
+
+dst = dst.replace(
+    '        out.extend("-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks".split(" "))',
+    '        libs = "-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks".split(" ")\\n'
+    '        if (WASI_SDK_PREFIX / "share/wasi-sysroot/lib/wasm32-wasip1/libsetjmp.a").exists():\\n'
+    '            libs.append("-lsetjmp")\\n'
+    '        out.extend(libs)',
+)
+dst = re.sub(
+    r'libs = "-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks"\.split\(" "\)\\n'
+    r'\s*if\s*\(WASI_SDK_PREFIX / "share/wasi-sysroot/lib/wasm32-wasi/libwasi-emulated-sjlj\.a"\)\.exists\(\):\\n'
+    r'\s*libs\.append\("-lwasi-emulated-sjlj"\)\\n'
+    r'\s*out\.extend\(libs\)',
+    'libs = "-lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-signal -lwasi-emulated-process-clocks".split(" ")\\n'
+    '        if (WASI_SDK_PREFIX / "share/wasi-sysroot/lib/wasm32-wasip1/libsetjmp.a").exists():\\n'
+    '            libs.append("-lsetjmp")\\n'
+    '        out.extend(libs)',
+    dst,
+)
+
+if dst != src:
+    p.write_text(dst, encoding="utf-8")
+PY
+        fi
+        WASI_ENV_SCRIPT=${WASISDK:-${SDKROOT}/wasisdk}/wasisdk_env.sh
+        if [ -f "$WASI_ENV_SCRIPT" ]
+        then
+            python3 - "$WASI_ENV_SCRIPT" <<'PY'
+import sys
+from pathlib import Path
+
+p = Path(sys.argv[1])
+src = p.read_text(encoding="utf-8")
+dst = src.replace("/lib/wasm32-wasi/pkgconfig", "/lib/wasm32-wasip1/pkgconfig")
 
 if dst != src:
     p.write_text(dst, encoding="utf-8")
@@ -284,7 +356,7 @@ export CC_PGLITE="-DPYDK=1 -DPG_PREFIX=${PGROOT} -I${PGROOT}/include -DCMA_MB=${
 
 if $WASI
 then
-    export WASI_CFLAGS="-D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL --target=wasm32-wasip1 -D__wasilibc_use_wasip1" # -mllvm -wasm-enable-sjlj"
+    export WASI_CFLAGS="-D_WASI_EMULATED_PROCESS_CLOCKS -D_WASI_EMULATED_SIGNAL --target=wasm32-wasip1 -D__wasilibc_use_wasip1 -mllvm -wasm-enable-sjlj -mllvm --wasm-enable-eh -mllvm --wasm-use-legacy-eh=false"
     export CC_PGLITE="$WASI_CFLAGS $CC_PGLITE"
 fi
 

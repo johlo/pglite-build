@@ -7,7 +7,11 @@ else
         echo "building in tree ( docker or proot )"
         ln -s . postgresql-${PG_BRANCH}
     else
-        git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
+        if [ -d "postgresql-${PG_BRANCH}" ]; then
+            echo "postgresql-${PG_BRANCH} already exists; reusing"
+        else
+            git clone --no-tags --depth 1 --single-branch --branch ${PG_BRANCH} https://github.com/electric-sql/postgres-pglite postgresql-${PG_BRANCH}
+        fi
     fi
 
     if pushd postgresql-${PG_BRANCH}
@@ -133,18 +137,35 @@ else
 
     # specific implementation for wasm os flavour
     [ -d  ${PORTABLE}/sdk_port-${BUILD} ] && cp ${PORTABLE}/sdk_port-${BUILD}/* ${PGROOT}/include/
+    if ${WASI} && [ ! -f ${PGROOT}/include/sdk_port.c ]; then
+        echo '#include "sdk_port-wasi.c"' > ${PGROOT}/include/sdk_port.c
+    fi
 
     if ${WASI}
     then
          echo "WASI BUILD: turning off xml/xslt support"
         XML2=""
         UUID=""
-
  # -lwasi-emulated-signal -D_WASI_EMULATED_SIGNAL -lwasi-emulated-getpid -D_WASI_EMULATED_GETPID
         # process-clocks is injected by the wasi-sdk cc wrapper; adding it here
         # pulls symbols into libpgcore.o and causes duplicate-symbol link failures.
         WASM_LDFLAGS="-lwasi-emulated-mman -lwasi-emulated-pthread"
         WASM_CFLAGS="-I${WASISDK}/hotfix -DSDK_PORT=${PREFIX}/include/sdk_port-wasi.c ${COMMON_CFLAGS} -D_WASI_EMULATED_PTHREAD -D_WASI_EMULATED_MMAN"
+        WASI_SYSROOT_LIB="${WASISDK}/upstream/share/wasi-sysroot/lib/wasm32-wasip1"
+        if [ -d "$WASI_SYSROOT_LIB" ]; then
+            WASM_LDFLAGS="${WASM_LDFLAGS} -L${WASI_SYSROOT_LIB} -lsetjmp"
+        fi
+        CLANG_RT_DIR="$(ls -d ${WASISDK}/upstream/lib/clang/*/lib/wasm32-unknown-wasip1 2>/dev/null | sort -V | tail -n1)"
+        if [ -n "$CLANG_RT_DIR" ] && [ -d "$CLANG_RT_DIR" ]; then
+            for rtlib in libclang_rt.builtins.a libclang_rt.builtins-wasm32.a libclang_rt.builtins-wasm32-wasi.a; do
+                if [ -f "${CLANG_RT_DIR}/${rtlib}" ]; then
+                    rtname="${rtlib#lib}"
+                    rtname="${rtname%.a}"
+                    WASM_LDFLAGS="${WASM_LDFLAGS} -L${CLANG_RT_DIR} -l${rtname}"
+                    break
+                fi
+            done
+        fi
         export MAIN_MODULE=""
 
     else
@@ -242,7 +263,11 @@ END
 
     if \
      EM_PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig" \
+     PKG_CONFIG_LIBDIR="${WASISDK}/upstream/share/wasi-sysroot/lib/wasm32-wasip1/pkgconfig" \
+     PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${WASISDK}/upstream/share/wasi-sysroot/lib/pkgconfig" \
      CONFIG_SITE="${PGROOT}/config.site" \
+     CC="${WASISDK}/bin/wasi-c" \
+     CXX="${WASISDK}/bin/wasi-c++" \
      CFLAGS="$WASM_CFLAGS" \
      LDFLAGS="$WASM_LDFLAGS" \
      emconfigure $CNF --with-template=$BUILD
@@ -469,4 +494,3 @@ echo "build-pgcore: end($BUILD)
 
 
 "
-
