@@ -4,10 +4,8 @@
  	ErrorData  *edata;
  	bool		output_to_server;
  	bool		output_to_client = false;
-+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
-+#   warning "FIXME: error levels"
-+#else
- 	int			i;
++#if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
+	int			i;
  
  	/*
  	 * Check some cases in which we want to promote an error into a more
@@ -26,16 +24,11 @@
  	/*
  	 * Now decide whether we need to process this report at all; if it's
  	 * warning or less and not enabled for logging, just return false without
-@@ -539,7 +543,12 @@
+@@ -539,7 +543,7 @@
  		 */
  
  		recursion_depth--;
-+#if defined(__wasi__)
-+        fprintf(stderr, "# 547: PG_RE_THROW(ERROR : %d) ignored\r\n", recursion_depth);
-+        abort();
-+#else
  		PG_RE_THROW();
-+#endif
  	}
  
  	/* Emit the message to the right places */
@@ -43,10 +36,8 @@
  		 * FATAL termination.  The postmaster may or may not consider this
  		 * worthy of panic, depending on which subprocess returns it.
  		 */
-+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
-+        puts("# 600: proc_exit(FATAL) ignored\r\n");
-+#else
- 		proc_exit(1);
++#if !defined(__EMSCRIPTEN__) && !defined(__wasi__)
+		proc_exit(1);
 +#endif
  	}
  
@@ -55,7 +46,6 @@
  	 */
  	if (edata->elevel >= ERROR)
  	{
-+puts("#712");
  		errfinish(filename, lineno, funcname);
  		pg_unreachable();
  	}
