@@ -34,8 +34,8 @@ RUN WASI_SDK_MAJOR="${WASI_SDK%%.*}" \
     && wget -q "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_MAJOR}/wasi-sdk-${WASI_SDK}-arm64-linux.tar.gz" -O /tmp/wasi-sdk.tar.gz \
     && cd /tmp \
     && tar xzf /tmp/wasi-sdk.tar.gz \
-    && rm -f /tmp/sdk/wasisdk/upstream/share/wasi-sysroot/lib/wasm32-wasi \
-    && rm -f /tmp/sdk/wasisdk/upstream/share/wasi-sysroot/include/wasm32-wasi \
+    && rm -rf /tmp/sdk/wasisdk/upstream/share/wasi-sysroot/lib/wasm32-wasi \
+    && rm -rf /tmp/sdk/wasisdk/upstream/share/wasi-sysroot/include/wasm32-wasi \
     && cp -a /tmp/wasi-sdk-${WASI_SDK}-arm64-linux/. /tmp/sdk/wasisdk/upstream/ \
     && rm -rf /tmp/wasi-sdk.tar.gz /tmp/wasi-sdk-${WASI_SDK}-arm64-linux \
     && cd /tmp/sdk/wasisdk/upstream/bin \
@@ -48,6 +48,23 @@ RUN WASI_SDK_MAJOR="${WASI_SDK%%.*}" \
     && ln -sf llvm-ar ar \
     && ln -sf llvm-objcopy strip \
     && ln -sf llvm-ar ranlib
+
+# Install wasm-tools (used for exception-format verification)
+ARG WASM_TOOLS_VERSION=1.244.0
+RUN set -e; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+      aarch64|arm64) asset_arch="aarch64" ;; \
+      x86_64|amd64) asset_arch="x86_64" ;; \
+      *) echo "unsupported arch for wasm-tools: $arch" >&2; exit 1 ;; \
+    esac; \
+    asset="wasm-tools-${WASM_TOOLS_VERSION}-${asset_arch}-linux.tar.gz"; \
+    url="https://github.com/bytecodealliance/wasm-tools/releases/download/v${WASM_TOOLS_VERSION}/${asset}"; \
+    curl -fsSL "$url" -o /tmp/wasm-tools.tar.gz; \
+    tar -xzf /tmp/wasm-tools.tar.gz -C /tmp; \
+    cp /tmp/wasm-tools-${WASM_TOOLS_VERSION}-${asset_arch}-linux/wasm-tools /usr/local/bin/; \
+    rm -rf /tmp/wasm-tools.tar.gz /tmp/wasm-tools-${WASM_TOOLS_VERSION}-${asset_arch}-linux; \
+    /usr/local/bin/wasm-tools --version
 
 # Create proper emconfigure wrapper for cross-compilation
 RUN echo '#!/bin/bash\nCONFIGURE=true "$@" --build=aarch64-linux-gnu --host=wasm32-wasi --with-template=wasi' > /tmp/sdk/wasisdk/bin/emconfigure \
