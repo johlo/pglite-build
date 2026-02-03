@@ -1,12 +1,81 @@
-diff --git a/src/include/port/wasi.h b/src/include/port/wasi.h
-index 0f43133..cc36e2f 100644
 --- a/src/include/port/wasi.h
 +++ b/src/include/port/wasi.h
-@@ -74,6 +74,7 @@
--#include <setjmp.h>
-+/* WASI shim: make sigsetjmp/siglongjmp available via libc setjmp. */
-+#include <setjmp.h>
- #ifndef sigsetjmp
- #define sigsetjmp(env, savesigs) setjmp(env)
- #define siglongjmp(env, val) longjmp(env, val)
- #endif
+@@ -73,19 +73,16 @@
+ 
+ #include <setjmp.h>
+ 
+-static int
+-sigsetjmp(sigjmp_buf env, int savesigs) {
+-//    puts("# 120: sigsetjmp");
+-    return 0;
+-}
++/* WASI shim: map sigsetjmp/siglongjmp to libc setjmp/longjmp for PG_TRY/PG_CATCH */
++#ifndef sigsetjmp
++#define sigsetjmp(env, savesigs) setjmp(env)
++#endif
++#ifndef siglongjmp
++#define siglongjmp(env, val) longjmp(env, val)
++#endif
+ 
+-static void
+-siglongjmp(sigjmp_buf env, int val) {
+-    puts("# 120: siglongjmp");
+-}
+ 
+ 
+-
+ // WIP :
+ 
+ #include <unistd.h>
+@@ -126,17 +123,9 @@
+ }
+ 
+ 
+-static const char *gai_strerror_msg = "# 165: gai_strerror_msg";
+-static const char *
+-gai_strerror(int errcode) {
+-    return gai_strerror_msg;
+-}
++/* gai_strerror: provided by sdk_socket.c */
+ 
+-
+-static int
+-getrusage(int who, struct rusage *usage) {
+-    return -1;
+-}
++/* getrusage: provided by WASI SDK 29 process-clocks extension */
+ 
+ // WIP: semaphores here
+ // ==================================================================
+@@ -237,28 +226,11 @@
+     return 0;
+ }
+ 
+-static struct group *_Nullable
+-getgrnam(const char *_Nullable name) {
+-    return NULL;
+-}
++/* getgrnam: provided by sdk_socket.c */
+ 
+-static int
+-getsockname(int sockfd, struct sockaddr *restrict addr, socklen_t *restrict addrlen) {
+-    return -1;
+-}
++/* getsockname: provided by sdk_socket.c */
+ 
+-static int
+-getaddrinfo(const char *restrict node,
+-                   const char *restrict service,
+-                   void *restrict hints,
+-                   void **restrict res) {
+-    puts("# 60: getaddrinfo");
+-    return -1;
+-}
+-static void
+-freeaddrinfo(void *res) {
+-    puts("# 65: freeaddrinfo");
+-}
++/* getaddrinfo, freeaddrinfo: provided by sdk_socket.c */
+ 
+ extern ssize_t recvfrom_bc(int socket, void *buffer, size_t length, int flags, void *address, socklen_t *address_len);
+ 
