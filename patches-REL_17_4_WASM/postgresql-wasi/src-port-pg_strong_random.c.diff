@@ -1,0 +1,31 @@
+--- a/src/port/pg_strong_random.c
++++ b/src/port/pg_strong_random.c
+@@ -135,7 +135,25 @@ pg_strong_random(void *buf, size_t len)
+ 	return false;
+ }
+ 
+-#else							/* not USE_OPENSSL or WIN32 */
++#elif defined(__wasi__)
++
++/*
++ * WASI-specific implementation using __wasi_random_get
++ */
++#include <wasi/api.h>
++
++void
++pg_strong_random_init(void)
++{
++	/* No initialization needed for WASI random */
++}
++
++bool
++pg_strong_random(void *buf, size_t len)
++{
++	__wasi_errno_t err = __wasi_random_get((uint8_t *) buf, len);
++	return (err == __WASI_ERRNO_SUCCESS);
++}
++
++#else							/* not USE_OPENSSL or WIN32 or WASI */
+ 
+ /*
+  * Without OpenSSL or Win32 support, just read /dev/urandom ourselves.

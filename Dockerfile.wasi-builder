@@ -11,11 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs make autoconf automake libtool pkg-config python3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install wasmtime
-RUN wget -q https://github.com/bytecodealliance/wasmtime/releases/download/v33.0.0/wasmtime-v33.0.0-aarch64-linux.tar.xz -O /tmp/wasmtime.tar.xz \
+# Download and install wasmtime (v41+ required for exnref/standard exceptions support)
+ARG WASMTIME_VERSION=41.0.1
+RUN wget -q https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-aarch64-linux.tar.xz -O /tmp/wasmtime.tar.xz \
     && cd /tmp && tar xf wasmtime.tar.xz \
     && mkdir -p /tmp/sdk/devices/aarch64/usr/bin \
-    && mv /tmp/wasmtime-v33.0.0-aarch64-linux/wasmtime /tmp/sdk/devices/aarch64/usr/bin/ \
+    && mv /tmp/wasmtime-v${WASMTIME_VERSION}-aarch64-linux/wasmtime /tmp/sdk/devices/aarch64/usr/bin/ \
     && ln -sf /tmp/sdk/devices/aarch64/usr/bin/wasmtime /usr/local/bin/wasmtime \
     && rm -rf /tmp/wasmtime*
 
