@@ -181,6 +181,29 @@ ________________________________________________________
             echo "building minimal wasi FS"
             cp ${PG_DIST}/pglite.wasi ${PGROOT}/bin/
             touch ${PGROOT}/bin/initdb ${PGROOT}/bin/postgres
+            if ! command -v wasmtime >/dev/null
+            then
+                echo "wasmtime not found on PATH (required to build base snapshot)"
+                exit 1
+            fi
+            rm -rf ${PGROOT}/base
+            mkdir -p ${PGROOT}/base
+            echo "initializing base snapshot"
+            # Use specific flags: exceptions=y for exnref support, stack-switching=n because ARM64 build doesn't support it
+            WASMTIME_FLAGS=${WASMTIME_FLAGS:-"-W exceptions=y -W stack-switching=n"}
+            wasmtime run ${WASMTIME_FLAGS} \
+                --dir /tmp \
+                --env PREFIX=${PGROOT} \
+                --env PGDATA=${PGROOT}/base \
+                --env PGUSER=${PGUSER:-postgres} \
+                --env PGL_INITDB=1 \
+                --env REPL=N \
+                ${PGROOT}/bin/pglite.wasi
+            if [ ! -f ${PGROOT}/base/PG_VERSION ]
+            then
+                echo "initdb did not create ${PGROOT}/base/PG_VERSION"
+                exit 1
+            fi
             WASMFS_LIST="${WORKSPACE}/wasmfs.txt"
             if [ ! -f "$WASMFS_LIST" ]
             then
