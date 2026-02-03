@@ -422,6 +422,27 @@ __attribute__ ((export_name("pgl_backend")))
 #endif
      int pgl_initdb() {
     PDEBUG("# 412: pg_initdb()");
+    if (!PREFIX) {
+        PREFIX = setdefault("PREFIX", WASM_PREFIX);
+    }
+    if (!PGUSER) {
+        PGUSER = setdefault("PGUSER", WASM_USERNAME);
+        setenv("PGUSER", PGUSER, 1);
+    }
+    if (!PGDATA) {
+        strconcat(tmpstr, PREFIX, "/base");
+        PGDATA = setdefault("PGDATA", tmpstr);
+    }
+    chdir("/");
+    mkdirp("/tmp");
+    mkdirp(PREFIX);
+    setenv("PGSYSCONFDIR", PREFIX, 1);
+    setenv("PGCLIENTENCODING", "UTF8", 1);
+    setenv("REPL", "N", 0);
+    setenv("LC_CTYPE", "en_US.UTF-8", 1);
+    setenv("TZ", "UTC", 0);
+    setenv("PGTZ", "UTC", 0);
+    setenv("PGDATABASE", "template1", 0);
     optind = 1;
     pgl_idb_status |= IDB_FAILED;
 
@@ -463,7 +484,7 @@ __attribute__ ((export_name("pgl_backend")))
         freopen(IDB_PIPE_BOOT, "r", stdin);
 
         char *boot_argv[] = {
-            g_argv[0],
+            strcat_alloc(PREFIX, "/bin/postgres"),
             "--boot",
             "-D", PGDATA,
             "-d", "3",
@@ -487,9 +508,9 @@ __attribute__ ((export_name("pgl_backend")))
 #else
         remove(IDB_PIPE_BOOT);
 #endif
+        // bootstrap uses proc_exit(); reset so single-user stage can run.
+        proc_exit_inprogress = false;
 
-        PDEBUG("# 479: initdb faking shutdown to complete WAL/OID states");
-        pg_proc_exit(66);
     }
 
     /* use previous initdb output to feed single mode */
@@ -501,13 +522,9 @@ __attribute__ ((export_name("pgl_backend")))
         puts("# 482: warning oid base too low, will need to set OID range after initdb(bootstrap/single)");
 #endif
     }
-/*
     {
-#if PGDEBUG
-        fprintf(stdout, "\n\n\n# 483: restarting in single mode for initdb with user '%s' instead of %s\n", getenv("PGUSER"), PGUSER);
-#endif
         char *single_argv[] = {
-            WASM_PREFIX "/bin/postgres",
+            strcat_alloc(PREFIX, "/bin/postgres"),
             "--single",
             "-d", "1", "-B", "16", "-S", "512", "-f", "siobtnmh",
             "-D", PGDATA,
@@ -518,12 +535,11 @@ __attribute__ ((export_name("pgl_backend")))
         };
         int single_argc = sizeof(single_argv) / sizeof(char*) - 1;
         optind = 1;
-        RePostgresSingleUserMain(single_argc, single_argv, WASM_USERNAME);
+        RePostgresSingleUserMain(single_argc, single_argv, PGUSER);
 PDEBUG("# 498: initdb faking shutdown to complete WAL/OID states in single mode");
-        async_restart = 1;
     }
-*/
     async_restart = 1;
+    pg_proc_exit(66);
   initdb_done:;
     pgl_idb_status |= IDB_CALLED;
 
@@ -566,6 +582,11 @@ PDEBUG("# 498: initdb faking shutdown to complete WAL/OID states in single mode"
      startup_hacks(progname);
      g_argv = argv;
      g_argc = argc;
+
+     if (getenv("PGL_INITDB")) {
+         pgl_initdb();
+         return 0;
+     }
 
      is_repl = strlen(getenv("REPL")) && getenv("REPL")[0] != 'N';
      is_embed = true;

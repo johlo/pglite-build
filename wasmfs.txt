@@ -5,6 +5,7 @@
 /tmp/pglite/lib/postgresql/llvmjit.so
 /tmp/pglite/lib/postgresql/plpgsql.so
 /tmp/pglite/lib/postgresql/hstore.so
+/tmp/pglite/base
 /tmp/pglite/locale
 /tmp/pglite/password
 /tmp/pglite/share/postgresql/extension/plpgsql--1.0.control
