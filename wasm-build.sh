@@ -656,6 +656,8 @@ END
         if ./pglite-link.sh
         then
             echo "TODO: extensions fs packing"
+        else
+            exit 545
         fi
 
 
