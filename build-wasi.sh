@@ -47,8 +47,13 @@ if [ -L postgresql ]; then
     fi
 fi
 
+# CLEAN=true removes the .patched marker to force re-patching, but keeps the git clone cached
 if $CLEAN; then
-    rm -f "postgresql-${PG_BRANCH}/postgresql-${PG_BRANCH}.patched" 2>/dev/null
+    if [ -d "postgresql-${PG_BRANCH}" ]; then
+        echo "Resetting postgresql-${PG_BRANCH} (CLEAN=true, keeping clone)"
+        cd "postgresql-${PG_BRANCH}" && git checkout . && git clean -fd && cd ..
+        rm -f "postgresql-${PG_BRANCH}/postgresql-${PG_BRANCH}.patched"
+    fi
 fi
 
 # Check if Docker image exists, build if not
@@ -101,16 +106,22 @@ if [ -f "output/pglite.wasi" ]; then
         -v "$(pwd)/output:/out" \
         "$DOCKER_IMAGE" \
         bash -lc 'set -e; \
-            wasm-tools print --features=exception-handling /out/pglite.wasi > /tmp/pglite.wat; \
-            if ! grep -E "\\btry_table\\b" /tmp/pglite.wat >/dev/null; then \
+            wasm-tools validate /out/pglite.wasi; \
+            wasm-tools print /out/pglite.wasi > /tmp/pglite.wat; \
+            if ! grep -E "^[[:space:]]*\\(?try_table([[:space:]]|\\()" /tmp/pglite.wat >/dev/null; then \
                 echo "missing try_table (standard exceptions)"; \
                 exit 2; \
             fi; \
-            if grep -E "\\btry\\b" /tmp/pglite.wat >/dev/null; then \
+            if grep -E "^[[:space:]]*\\(?try([[:space:]]|\\()" /tmp/pglite.wat >/dev/null; then \
                 echo "legacy try instruction detected"; \
                 exit 2; \
             fi; \
             echo "ok: standard exceptions (try_table) detected"'
+    echo "Verify: snapshot contains PG_VERSION"
+    if ! tar -tzf output/pglite-wasi.tar.gz | grep -q '^tmp/pglite/base/PG_VERSION$'; then
+        echo "missing tmp/pglite/base/PG_VERSION in tarball"
+        exit 1
+    fi
 else
     echo "BUILD FAILED - pglite.wasi not found"
     exit 1
